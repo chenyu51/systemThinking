@@ -167,11 +167,28 @@ function showAIAssistant() {
   document.querySelector('.ai-assistant-menu')?.remove();
   const menu = document.createElement('div');
   menu.className = 'ai-assistant-menu';
-  menu.style.cssText = 'position:fixed;top:60px;right:0;bottom:30px;width:min(560px,calc(100vw - 24px));background:white;border-left:1px solid #e0e0e0;box-shadow:-12px 0 28px rgba(15,23,42,.12);z-index:2000;overflow:auto;padding:16px 16px 20px;';
+  menu.style.cssText = 'position:fixed;top:60px;right:0;bottom:30px;width:min(560px,calc(100vw - 24px));background:white;border-left:1px solid #e0e0e0;box-shadow:-12px 0 28px rgba(15,23,42,.12);z-index:2000;overflow:auto;padding:0;display:flex;flex-direction:column;';
 
+  // 头部容器：包含标题和关闭按钮
+  const header = document.createElement('div');
+  header.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:16px 16px 12px;border-bottom:1px solid #e0e0e0;flex-shrink:0;';
+  
   const title = document.createElement('div');
-  title.style.cssText = 'font-weight:700;color:#0f172a;margin-bottom:12px;font-size:16px;';
+  title.style.cssText = 'font-weight:700;color:#0f172a;font-size:16px;';
   title.textContent = i18n.t('ai.title');
+  
+  const closeButtonHeader = document.createElement('button');
+  closeButtonHeader.type = 'button';
+  closeButtonHeader.textContent = '✕';
+  closeButtonHeader.style.cssText = 'width:28px;height:28px;padding:0;border:1px solid #dbe2ea;border-radius:6px;background:#fff;color:#64748b;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all 0.2s ease;';
+  closeButtonHeader.onmouseover = () => { closeButtonHeader.style.background = '#f8fafc'; closeButtonHeader.style.color = '#0f172a'; };
+  closeButtonHeader.onmouseout = () => { closeButtonHeader.style.background = '#fff'; closeButtonHeader.style.color = '#64748b'; };
+  
+  header.append(title, closeButtonHeader);
+  
+  // 内容容器（可滚动）
+  const content = document.createElement('div');
+  content.style.cssText = 'flex:1;overflow:auto;padding:16px 16px 20px;';
 
   const textarea = document.createElement('textarea');
   textarea.placeholder = i18n.t('ai.promptPlaceholder');
@@ -214,11 +231,6 @@ function showAIAssistant() {
   replaceButton.type = 'button';
   replaceButton.textContent = i18n.t('ai.applyReplace');
   replaceButton.style.cssText = 'flex:1 1 calc(50% - 4px);justify-content:center;';
-
-  const closeButton = document.createElement('button');
-  closeButton.type = 'button';
-  closeButton.textContent = i18n.t('ai.close');
-  closeButton.style.cssText = 'flex:1 1 calc(50% - 4px);justify-content:center;';
 
   const resultBox = document.createElement('div');
   resultBox.style.cssText = 'font-size:12px;color:#666;';
@@ -279,9 +291,10 @@ function showAIAssistant() {
     }
   };
 
-  closeButton.onclick = () => menu.remove();
-  actions.append(generateButton, patternButton, leverageButton, extractButton, answerButton, applyButton, replaceButton, closeButton);
-  menu.append(title, textarea, actions, resultBox, logSection);
+  closeButtonHeader.onclick = () => menu.remove();
+  actions.append(generateButton, patternButton, leverageButton, extractButton, answerButton, applyButton, replaceButton);
+  content.append(textarea, actions, resultBox, logSection);
+  menu.append(header, content);
   menu.addEventListener('click', (event) => event.stopPropagation());
   document.body.appendChild(menu);
 }
