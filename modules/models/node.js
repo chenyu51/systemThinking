@@ -90,70 +90,10 @@ class CanvasNode {
   }
 
   /**
-   * 创建换行文本（当文本过长时）
+   * 设置节点文本
    */
-  createWrappedText(text, maxWidth) {
-    // 预估每行最多字符数：每个字符大约占 8-10 个像素
-    const charWidth = 9;
-    const maxCharsPerLine = Math.floor(maxWidth / charWidth);
-    const minCharsPerLine = 4; // 最少4个字符
-    const charsPerLine = Math.max(minCharsPerLine, maxCharsPerLine);
-    
-    const lines = [];
-    let currentLine = '';
-    
-    for (let i = 0; i < text.length; i++) {
-      currentLine += text[i];
-      if (currentLine.length >= charsPerLine || i === text.length - 1) {
-        if (i === text.length - 1) {
-          lines.push(currentLine);
-        } else {
-          // 尝试在空格处断行
-          const lastSpaceIndex = currentLine.lastIndexOf(' ');
-          if (lastSpaceIndex > 0) {
-            lines.push(currentLine.substring(0, lastSpaceIndex));
-            currentLine = currentLine.substring(lastSpaceIndex + 1);
-          } else {
-            lines.push(currentLine);
-            currentLine = '';
-          }
-        }
-      }
-    }
-    
-    if (currentLine.length > 0) {
-      lines.push(currentLine);
-    }
-    
-    return lines;
-  }
-
-  /**
-   * 设置带换行的文本元素
-   */
-  setWrappedText(textElement, label, nodeWidth) {
-    // 清除现有内容
-    textElement.textContent = '';
-    
-    const lines = this.createWrappedText(label, nodeWidth - 16);
-    
-    if (lines.length === 1) {
-      // 单行直接设置
-      textElement.textContent = lines[0];
-    } else {
-      // 多行使用 tspan
-      const lineHeight = 16;
-      const totalHeight = lines.length * lineHeight;
-      const startY = -totalHeight / 2 + lineHeight / 2;
-      
-      lines.forEach((line, index) => {
-        const tspan = document.createElementNS('http://www.w3.org/2000/svg', 'tspan');
-        tspan.setAttribute('x', textElement.getAttribute('x'));
-        tspan.setAttribute('dy', index === 0 ? startY : lineHeight);
-        tspan.textContent = line;
-        textElement.appendChild(tspan);
-      });
-    }
+  setNodeText(textElement, label) {
+    textElement.textContent = String(label || '');
   }
   createSVGElement(options = {}) {
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
@@ -211,7 +151,7 @@ class CanvasNode {
     text.setAttribute('font-weight', '500');
     text.setAttribute('pointer-events', 'none');
     text.setAttribute('class', 'node-label');
-    this.setWrappedText(text, this.label, this.width);
+    this.setNodeText(text, this.label);
 
     // 处理节点类型的特殊标记
     if (this.type === 'stock') {
