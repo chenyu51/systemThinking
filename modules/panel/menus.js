@@ -235,11 +235,13 @@ function buildTemplateRow(template, menu) {
 }
 
 function buildArchetypeRow(key, menu) {
-  const item = buildMenuItem(i18n.t(`template.${key}`), () => {
+  const name = window.getArchetypeDisplayName?.(key) || i18n.t(`template.${key}`);
+  const description = window.getArchetypeDisplayDescription?.(key) || i18n.t(`template.${key}Desc`);
+  const item = buildMenuItem(name, () => {
     loadArchetype(key);
     menu.remove();
   });
-  item.innerHTML = `<div style="font-weight:500;color:#333;margin-bottom:4px;">${i18n.t(`template.${key}`)}</div><div style="font-size:12px;color:#999;line-height:1.4;">${i18n.t(`template.${key}Desc`)}</div>`;
+  item.innerHTML = `<div style="font-weight:500;color:#333;margin-bottom:4px;">${name}</div><div style="font-size:12px;color:#999;line-height:1.4;">${description}</div>`;
   return item;
 }
 

@@ -178,12 +178,29 @@ function loadArchetype(archetypeKey) {
   if (!canvas) return;
   const archetype = window.ARCHETYPES[archetypeKey];
   if (!archetype) return alert(i18n.t('dialog.templateMissing'));
+  const archetypeName = window.getArchetypeDisplayName?.(archetypeKey) || archetype.name;
+  const archetypeDescription = window.getArchetypeDisplayDescription?.(archetypeKey) || archetype.description;
   if ((store.getNodes().length > 0 || store.getEdges().length > 0) && !confirm(i18n.t('dialog.templateReplaceConfirm'))) return;
   store.clear();
-  store.data.templateInfo = { name: archetype.name, description: archetype.description };
+  store.data.templateInfo = { key: archetypeKey, name: archetypeName, description: archetypeDescription };
+  store.data.aiInfo = {
+    ...store.createDefaultAIInfo(),
+    description: archetypeDescription,
+    patterns: Array.isArray(archetype.patterns) ? [...archetype.patterns] : [],
+    leveragePoints: Array.isArray(archetype.leveragePoints) ? [...archetype.leveragePoints] : [],
+    systemConcepts: JSON.parse(JSON.stringify(archetype.systemConcepts || store.createDefaultAIInfo().systemConcepts))
+  };
   const nodeIdMap = {};
   archetype.nodes.forEach((nodeData, index) => {
-    const node = new CanvasNode({ label: nodeData.label, x: nodeData.x, y: nodeData.y, color: nodeData.color, type: 'variable' });
+    const node = new CanvasNode({
+      label: nodeData.label,
+      x: nodeData.x,
+      y: nodeData.y,
+      color: nodeData.color,
+      type: nodeData.type || 'variable',
+      shape: nodeData.shape || 'rectangle',
+      description: nodeData.description || ''
+    });
     nodeIdMap[index] = node.id;
     store.addNode(node.toJSON());
   });
@@ -200,5 +217,5 @@ function loadArchetype(archetypeKey) {
   canvas.updateProperties();
   canvas.saveHistory();
   canvas.persistCanvasState();
-  canvas.updateStatus(i18n.t('message.templateLoaded', { name: archetype.name }));
+  canvas.updateStatus(i18n.t('message.templateLoaded', { name: archetypeName }));
 }
