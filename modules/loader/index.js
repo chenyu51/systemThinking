@@ -16,7 +16,7 @@ window.CanvasModuleLoader = {
   },
 
   async loadAll(manifest = window.CANVAS_MODULE_MANIFEST || {}) {
-    for (const group of ['i18n', 'data', 'models', 'canvas', 'panel']) {
+    for (const group of ['i18n', 'data', 'models', 'canvas', 'ai', 'panel']) {
       await this.loadGroup(manifest[group]);
     }
   },

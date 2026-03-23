@@ -1,228 +1,295 @@
-# 📊 SystemCanvas - Chrome插件需求文档实现
+# SystemCanvas
 
-一款轻量级系统思维与可视化分析工具的 Chrome 插件。帮助用户快速绘制系统循环图、因果回路图、思维导图。
+轻量级系统思维可视化 Chrome 扩展，用来绘制因果回路图、系统循环图、简单思维结构图。
 
-## 📁 项目结构
+当前版本已经支持：
+- 节点、连线、独立文本的创建与编辑
+- 画布拖拽、滚轮缩放、模板居中加载
+- 本地保存、模板保存、导出 PNG/SVG/JSON
+- 中英文切换
+- AI 配置与 AI 辅助生成节点/连线建议
 
-```
+## 当前目录结构
+
+```text
 SystemCanvas/
-├── manifest.json              # Chrome 插件配置文件 (Manifest V3)
-├── background.js              # 后台服务 Worker
+├── manifest.json
+├── background.js
+├── assets/
 ├── popup/
-│   ├── popup.html            # 插件弹窗UI
-│   └── popup.js              # 弹窗交互逻辑
+│   ├── popup.html
+│   └── popup.js
 ├── panel/
-│   ├── index.html            # 主画布界面
-│   ├── canvas.js             # 核心画布逻辑（SVG渲染、交互）
-│   ├── panel.js              # 工具栏菜单交互
-│   ├── store.js              # 数据存储层 (Chrome Storage API)
-│   ├── node.js               # 节点数据模型 & SVG生成
-│   └── edge.js               # 连线数据模型 & SVG生成
-└── assets/                   # 图标文件夹（待建）
-    ├── icon-16.png
-    ├── icon-48.png
-    └── icon-128.png
+│   └── index.html
+├── modules/
+│   ├── ai/
+│   │   ├── assistant.js
+│   │   └── config.js
+│   ├── canvas/
+│   │   ├── core.js
+│   │   ├── events.js
+│   │   ├── operations.js
+│   │   ├── properties.js
+│   │   ├── render.js
+│   │   └── view.js
+│   ├── data/
+│   │   ├── archetypes.js
+│   │   └── store.js
+│   ├── i18n/
+│   │   ├── index.js
+│   │   └── messages.js
+│   ├── loader/
+│   │   ├── index.js
+│   │   └── manifest.js
+│   ├── models/
+│   │   ├── edge.js
+│   │   ├── node.js
+│   │   └── text.js
+│   └── panel/
+│       ├── actions.js
+│       ├── index.js
+│       └── menus.js
+├── AGENTS.md
+└── README.md
 ```
 
-## ✨ 核心功能（MVP v0.1）
+## 模块职责
 
-### 基础绘图功能
-- ✅ **节点创建** - 添加文本节点，可自定义标签内容
-- ✅ **连线绘制** - 节点间绘制带箭头的连线，表示因果关系
-- ✅ **连线类型** - 支持正反馈(+) / 负反馈(-) / 中立
-- ✅ **画布操作** - 拖拽移动节点、平移视图
-- ✅ **样式设置** - 节点颜色、形状（矩形/圆形/菱形）、连线颜色
+### `panel/`
 
-### 辅助功能
-- ✅ **本地保存** - 将图表保存为 JSON 到浏览器本地存储
-- ✅ **导出功能** - 支持导出为 PNG/SVG/JSON 格式
-- ✅ **快捷键** - 
-  - `Delete` 删除选中元素
-  - `Ctrl/⌘ + Z` 撤销
-  - `Ctrl/⌘ + Y` 重做  
-  - `Ctrl/⌘ + S` 保存
+- `panel/index.html`
+  - 主画布页面入口
+  - 提供页面 DOM 结构
+  - 通过 loader 装配业务模块
 
-### 进度状态
-- ✅ 节点与连线的创建、编辑、删除
-- ✅ 撤销/重做功能
-- ✅ 数据持久化（Chrome localStorage）
-- ✅ 导出功能（JSON/SVG/PNG）
-- ⏳ 回路识别高亮
-- ⏳ 延迟标记符号
-- ⏳ 存量(Stock)/流量(Flow)节点特殊样式
+### `modules/canvas/`
 
-## 🚀 快速开始
+- `core.js`
+  - 画布核心类
+  - 初始化入口
+- `events.js`
+  - 画布和工具交互事件
+- `operations.js`
+  - 节点、边、文本的增删改查
+  - 撤销 / 重做
+- `render.js`
+  - SVG 渲染
+  - 节点、边、文本绘制
+- `properties.js`
+  - 右侧属性面板联动
+- `view.js`
+  - 缩放、平移、居中、视口同步、状态栏更新
 
-### 安装和加载
+### `modules/panel/`
 
-1. **本地开发加载**：
-   - 打开 Chrome 浏览器
-   - 输入 `chrome://extensions/`
-   - 启用"开发者模式"（右上角）
-   - 点击"加载已解压的扩展程序"
-   - 选择本项目目录
+- `actions.js`
+  - 顶部按钮动作
+  - 新建、打开、保存、模板加载、导出等
+- `menus.js`
+  - 导出菜单、已保存菜单、设置菜单、模板菜单
+- `index.js`
+  - 顶部按钮和左侧工具绑定入口
 
-2. **打开插件**：
-   - 点击工具栏中的插件图标
-   - 选择"+ 新建画布"或"打开最近的画布"
+### `modules/models/`
 
-### 使用流程
+- `node.js`
+  - 节点模型与 SVG 输出
+- `edge.js`
+  - 连线模型与 SVG 输出
+- `text.js`
+  - 独立文本模型与 SVG 输出
 
-#### 创建系统图
-1. 选择**"添加节点"**工具
-2. 在画布上点击放置节点
-3. 双击节点编辑文字标签
-4. 在右侧面板调整颜色、形状
+### `modules/data/`
 
-#### 建立关系
-1. 选择**"绘制连线"**工具
-2. 从节点A拖拽到节点B
-3. 在右侧面板选择反馈类型（正/负/中立）
-4. 添加连线标签
+- `store.js`
+  - Chrome Storage 持久化
+  - 快照、模板、本地配置读写
+- `archetypes.js`
+  - 内置模板数据
 
-#### 保存和导出
-1. **保存**: `Ctrl/⌘ + S` 或点击工具栏"保存"按钮
-2. **导出**: 点击"导出 ▼" 选择格式
-   - PNG: 用于演示和分享
-   - SVG: 用于专业编辑
-   - JSON: 用于备份和导入
+### `modules/i18n/`
 
-## 🎨 界面布局
+- `messages.js`
+  - 中英文文案
+- `index.js`
+  - 翻译、语言切换、文案应用
 
-```
-┌─────────────────────────────────────────┐
-│  [新建] [打开] [保存] [导出▼] [撤销] [设置]  │  ← 工具栏
-├──────────┬────────────────────────────┤
-│          │                            │
-│  工具箱   │        主画布区域          │  属性面板
-│ ┌─────┐  │   (可拖拽、缩放)            │ ┌────────┐
-│ │选择  │  │                            │ │选中元素│
-│ │节点  │  │                            │ │标签编辑│
-│ │连线  │  │                            │ │样式设置│
-│ │文本  │  │                            │ └────────┘
-│ └─────┘  │                            │
-│          │                            │
-├──────────┼────────────────────────────┤
-│ 状态栏 | 节点:0 | 连线:0 | 缩放:100%  │
-└──────────┴────────────────────────────┘
-```
+### `modules/ai/`
 
-## 💾 数据模型
+- `config.js`
+  - AI 接口地址、API Key、模型配置读写
+- `assistant.js`
+  - 调用 AI 接口
+  - 生成节点/连线建议
+  - 一键写入当前画布
 
-### 节点 (Node)
-```javascript
-{
-  id: "node_xxx",
-  type: "variable",        // variable | stock | flow
-  label: "用户增长",
-  x: 100,
-  y: 200,
-  shape: "rectangle",      // rectangle | circle | diamond
-  color: "#4A90E2",
-  width: 120,
-  height: 60,
-  description: ""          // 节点描述/备注
-}
-```
+### `modules/loader/`
 
-### 连线 (Edge)
-```javascript
-{
-  id: "edge_xxx",
-  source: "node_1",        // 源节点ID
-  target: "node_2",        // 目标节点ID
-  type: "positive",        // positive | negative | neutral
-  hasDelay: false,         // 标记延迟 (//)
-  label: "",               // 连线标签
-  color: "#27AE60"         // 根据类型自动设置
-}
-```
+- `manifest.js`
+  - 模块加载清单
+- `index.js`
+  - 页面启动时按顺序加载各模块
 
-### 画布数据 (Canvas)
-```javascript
-{
-  version: "1.0",
-  id: "canvas_xxx",
-  name: "系统图名称",
-  created: "2024-01-01T10:00:00Z",
-  updated: "2024-01-01T10:30:00Z",
-  canvas: {
-    zoom: 1,
-    offsetX: 0,
-    offsetY: 0,
-    nodes: [...],
-    edges: [...]
-  }
-}
-```
+## 当前加载顺序
 
-## 🔧 技术栈
+`panel/index.html` 会先加载：
 
-- **前端框架**: 原生 JavaScript（轻量、无依赖）
-- **图形引擎**: SVG + JavaScript（原生实现）
-- **存储**: Chrome Storage API（本地存储）
-- **兼容性**: Chrome 90+ (Manifest V3)
-- **体积**: < 2MB（轻量级）
+1. `modules/loader/manifest.js`
+2. `modules/loader/index.js`
 
-## 📋 核心代码说明
+然后 loader 再按顺序加载：
 
-### store.js - 数据存储层
-- 封装 Chrome Storage API
-- 提供节点、连线的增删改查
-- 支持 JSON 导入导出
+1. `modules/i18n`
+2. `modules/data`
+3. `modules/models`
+4. `modules/canvas`
+5. `modules/ai`
+6. `modules/panel`
 
-### node.js - 节点模型
-- 定义节点数据结构
-- 生成 SVG 元素
-- 支持不同形状和类型的渲染
+最后调用 `initializeCanvasApp()` 完成启动。
 
-### edge.js - 连线模型
-- 定义连线数据结构
-- 生成 SVG 路径和箭头
-- 支持正负反馈类型标记
+## 已实现功能
 
-### canvas.js - 核心画布
-- SVG 渲染引擎
-- 节点/连线的创建、选择、编辑
-- 拖拽、缩放、平移交互
-- 撤销/重做功能
-- 快捷键绑定
+### 画布与编辑
 
-### panel.js - UI交互
-- 工具栏按钮事件
-- 导出功能实现
-- 菜单交互逻辑
+- 选择工具、添加节点、绘制连线、添加独立文本
+- 节点拖拽
+- 画布拖拽
+- 鼠标位置为中心的滚轮缩放
+- 节点、连线、文本的属性编辑
+- Delete / Backspace 删除选中元素
+- 撤销 / 重做
 
-## 🎯 下一步计划（v0.5+）
+### 节点与连线
 
-- [ ] 自动回路识别和高亮
-- [ ] 延迟标记符号显示
-- [ ] 存量/流量节点特殊样式
-- [ ] 网格对齐功能
-- [ ] 缩放功能优化
-- [ ] 模板库
-- [ ] 批量操作（选择多个节点）
-- [ ] 图层管理
-- [ ] 云同步支持
+- 节点类型：变量、存量、流量
+- 节点形状：矩形、圆形、菱形
+- 连线类型：正反馈、负反馈、中立
+- 多条边自动分离弧度
+- 边标签与 `+/-` 同时展示
+- 从节点四周链接桩发起连线
 
-## 📝 快捷键速查表
+### 模板与本地数据
+
+- 本地保存画布
+- 已保存列表查看、加载、删除
+- 保存为模板
+- 模板加载后自动居中
+- 当前画布来自模板时，右侧面板显示模板名称和说明
+
+### 导出与国际化
+
+- 导出 PNG / SVG / JSON
+- 中英文切换
+- 语言设置持久化
+
+### AI 辅助
+
+- 设置菜单中配置：
+  - 接口地址
+  - API Key
+  - 模型
+- 顶部工具栏打开 `AI 辅助`
+- 输入需求后生成节点与连线建议
+- 一键写入当前画布
+
+## 安装与运行
+
+### 本地加载扩展
+
+1. 打开 Chrome
+2. 进入 `chrome://extensions/`
+3. 打开右上角开发者模式
+4. 点击“加载已解压的扩展程序”
+5. 选择当前项目目录
+
+### 打开主画布
+
+1. 点击浏览器工具栏扩展图标
+2. 在弹窗中选择新建或打开最近的画布
+3. 主画布页面会打开 `panel/index.html`
+
+## AI 配置说明
+
+AI 辅助当前通过自定义接口地址接入，你需要在界面里自行配置：
+
+- 接口地址
+  - 例如 OpenAI 兼容接口可填写 `https://api.openai.com/v1/chat/completions`
+- API Key
+- 模型
+  - 例如 `gpt-4o-mini`
+
+配置入口：
+
+1. 打开主画布
+2. 点击右上角 `设置`
+3. 在 `AI 配置` 区域填写并保存
+
+## 快捷键
 
 | 快捷键 | 功能 |
-|--------|------|
+|---|---|
 | `Delete` | 删除选中元素 |
+| `Backspace` | 删除选中元素 |
 | `Ctrl/⌘ + Z` | 撤销 |
 | `Ctrl/⌘ + Y` | 重做 |
 | `Ctrl/⌘ + S` | 保存 |
 
-## 🐛 已知问题
-- 暂无
+## 数据模型摘要
 
-## 📄 许可证
-MIT
+### 节点
 
-## 👤 作者
-开发中...
+```js
+{
+  id: "node_xxx",
+  type: "variable",
+  label: "用户增长",
+  x: 100,
+  y: 200,
+  shape: "rectangle",
+  color: "#4A90E2",
+  width: 120,
+  height: 60
+}
+```
 
----
+### 连线
 
-**提示**: 这是 MVP 版本（v0.1），核心功能完整。后续版本会添加更多高级功能。
+```js
+{
+  id: "edge_xxx",
+  source: "node_1",
+  target: "node_2",
+  type: "positive",
+  hasDelay: false,
+  label: "促进",
+  color: "#27AE60"
+}
+```
+
+### 文本
+
+```js
+{
+  id: "text_xxx",
+  text: "说明",
+  x: 300,
+  y: 240,
+  color: "#333333",
+  fontSize: 24
+}
+```
+
+## 开发约束
+
+- 源码模块统一放在 `modules/`
+- 尽量将单文件控制在 300 行以内
+- 文件接近上限时，优先继续拆模块，不要继续堆积职责
+
+## 后续可继续扩展
+
+- AI 生成结果的二次编辑和重试
+- AI 对已有画布做“补全分析”
+- 模板搜索与分类
+- 自定义模板删除 / 重命名
+- 文档同步与云端存储

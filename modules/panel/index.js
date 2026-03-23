@@ -16,6 +16,11 @@ function initializeEventListeners() {
   document.getElementById('btnSave').textContent = i18n.t('toolbar.save');
   document.getElementById('btnSaved').textContent = i18n.t('toolbar.saved');
   document.getElementById('btnSaveTemplate').textContent = i18n.t('toolbar.saveTemplate');
+  document.getElementById('btnAI').textContent = i18n.t('toolbar.ai');
+  document.getElementById('btnGraphInfo').textContent = i18n.t('properties.graphInfo');
+  document.getElementById('btnLayout').textContent = i18n.t('toolbar.layout');
+  document.getElementById('btnToggleLeft').textContent = i18n.t('toolbar.leftPanel');
+  document.getElementById('btnToggleRight').textContent = i18n.t('toolbar.rightPanel');
   document.getElementById('btnExport').textContent = `${i18n.t('toolbar.export')} ▼`;
   document.getElementById('btnUndo').textContent = i18n.t('toolbar.undo');
   document.getElementById('btnRedo').textContent = i18n.t('toolbar.redo');
@@ -26,6 +31,11 @@ function initializeEventListeners() {
   document.getElementById('btnSave').onclick = saveCanvas;
   document.getElementById('btnSaved').onclick = (event) => { event.stopPropagation(); showSavedMenu(); };
   document.getElementById('btnSaveTemplate').onclick = saveAsTemplate;
+  document.getElementById('btnAI').onclick = (event) => { event.stopPropagation(); showAIAssistant(); };
+  document.getElementById('btnGraphInfo').onclick = (event) => { event.stopPropagation(); showGraphInfoMenu(); };
+  document.getElementById('btnLayout').onclick = relayoutCanvas;
+  document.getElementById('btnToggleLeft').onclick = () => togglePanel('left');
+  document.getElementById('btnToggleRight').onclick = () => togglePanel('right');
   document.getElementById('btnExport').onclick = (event) => { event.stopPropagation(); toggleMenu(); };
   document.getElementById('btnUndo').onclick = undo;
   document.getElementById('btnRedo').onclick = redo;
@@ -59,12 +69,14 @@ Object.assign(window, {
   openCanvas,
   saveCanvas,
   saveAsTemplate,
+  relayoutCanvas,
   showSavedMenu,
   toggleMenu,
   undo,
   redo,
   openSettings,
   showArchetypeMenu,
+  showGraphInfoMenu,
   loadArchetype,
   initializeEventListeners
 });

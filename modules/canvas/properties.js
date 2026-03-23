@@ -1,13 +1,20 @@
 Object.assign(Canvas.prototype, {
   updateProperties() {
+    this.updateGraphInfo();
     const templateInfoGroup = document.getElementById('templateInfoGroup');
     const templateName = document.getElementById('templateName');
     const templateDescription = document.getElementById('templateDescription');
+    const aiInfoGroup = document.getElementById('aiInfoGroup');
+    const aiDescription = document.getElementById('aiDescription');
+    const aiPatterns = document.getElementById('aiPatterns');
+    const aiLeveragePoints = document.getElementById('aiLeveragePoints');
     const selectedInfo = document.getElementById('selectedInfo');
     const nodeProperties = document.getElementById('nodeProperties');
     const edgeProperties = document.getElementById('edgeProperties');
     const textProperties = document.getElementById('textProperties');
     this.updateTemplateInfo(templateInfoGroup, templateName, templateDescription);
+    this.updateAIInfo(aiInfoGroup, aiDescription, aiPatterns, aiLeveragePoints);
+    this.updateSystemConceptPanel();
     nodeProperties.style.display = 'none';
     edgeProperties.style.display = 'none';
     textProperties.style.display = 'none';
@@ -15,6 +22,24 @@ Object.assign(Canvas.prototype, {
     if (this.selectedEdgeId) return this.updateEdgeProperties(selectedInfo, edgeProperties);
     if (this.selectedTextId) return this.updateTextProperties(selectedInfo, textProperties);
     selectedInfo.textContent = i18n.t('selected.none');
+  },
+
+  updateGraphInfo() {
+    const titleField = document.getElementById('graphTitle');
+    const descriptionField = document.getElementById('graphDescription');
+    titleField.value = store.data.name || '';
+    descriptionField.value = store.data.description || '';
+    titleField.onchange = () => this.applyGraphInfoUpdates({
+      name: titleField.value.trim() || '未命名画布'
+    });
+    descriptionField.onchange = () => this.applyGraphInfoUpdates({
+      description: descriptionField.value.trim()
+    });
+  },
+
+  applyGraphInfoUpdates(updates) {
+    Object.assign(store.data, updates);
+    this.persistCanvasState();
   },
 
   updateTemplateInfo(group, name, description) {
@@ -27,6 +52,45 @@ Object.assign(Canvas.prototype, {
     group.style.display = 'block';
     name.textContent = store.data.templateInfo.name;
     description.textContent = store.data.templateInfo.description || i18n.t('template.noDescription');
+  },
+
+  updateAIInfo(group, description, patterns, leveragePoints) {
+    const aiInfo = store.data.aiInfo;
+    if (!aiInfo?.description && !aiInfo?.patterns?.length && !aiInfo?.leveragePoints?.length) {
+      group.style.display = 'none';
+      description.textContent = '';
+      patterns.innerHTML = '';
+      leveragePoints.innerHTML = '';
+      return;
+    }
+    group.style.display = 'block';
+    description.innerHTML = this.renderEmphasisText(aiInfo.description || '');
+    patterns.innerHTML = this.renderInfoList(aiInfo.patterns);
+    leveragePoints.innerHTML = this.renderInfoList(aiInfo.leveragePoints);
+  },
+
+  renderInfoList(items = []) {
+    if (!items.length) {
+      return '<div class="info-empty">-</div>';
+    }
+    return items.map((item) => `<div class="info-list-item">${this.renderEmphasisText(item)}</div>`).join('');
+  },
+
+  renderEmphasisText(value) {
+    let text = this.escapeHTML(value);
+    text = text.replace(/^([^：:\n]{2,16})([：:])/gm, '<strong>$1</strong>$2');
+    text = text.replace(/([“「《][^”」》\n]{1,24}[”」》])/g, '<strong>$1</strong>');
+    text = text.replace(/(关键模式|杠杆点|正反馈|负反馈|风险|机会|瓶颈|建议|干预点)/g, '<strong>$1</strong>');
+    return text;
+  },
+
+  escapeHTML(value) {
+    return String(value || '')
+      .replaceAll('&', '&amp;')
+      .replaceAll('<', '&lt;')
+      .replaceAll('>', '&gt;')
+      .replaceAll('"', '&quot;')
+      .replaceAll("'", '&#39;');
   },
 
   updateNodeProperties(selectedInfo, nodeProperties) {

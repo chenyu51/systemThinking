@@ -25,20 +25,18 @@ function syncCanvasFromStore({ centerGraph = false } = {}) {
   }
   canvas.render();
   canvas.updateProperties();
+  applyPanelVisibility();
 }
 
-function newCanvas() {
+async function newCanvas() {
   const canvas = getCanvasInstance();
   if (!canvas) return;
   if (!confirm(i18n.t('dialog.newCanvasConfirm'))) return;
   store.clear();
-  store.data.name = '未命名画布';
-  store.save();
+  await store.save();
   resetCanvasUIState();
-  canvas.currentNodeType = 'variable';
-  canvas.syncNodeTypeSelection();
-  canvas.render();
-  canvas.updateProperties();
+  syncCanvasFromStore();
+  canvas.saveHistory();
   canvas.updateStatus(i18n.t('message.newCanvas'));
 }
 
@@ -147,6 +145,28 @@ function redo() {
   if (!canvas) return;
   canvas.redo();
   canvas.updateStatus(i18n.t('message.redone'));
+}
+
+function relayoutCanvas() {
+  const canvas = getCanvasInstance();
+  if (!canvas) return;
+  canvas.relayoutGraph();
+  canvas.saveHistory();
+  canvas.persistCanvasState();
+  canvas.updateProperties();
+  canvas.updateStatus(i18n.t('message.layoutApplied'));
+}
+
+function applyPanelVisibility() {
+  document.querySelector('.sidebar')?.classList.toggle('is-hidden', !!store.data.canvas.leftPanelHidden);
+  document.querySelector('.properties-panel')?.classList.toggle('is-hidden', !!store.data.canvas.rightPanelHidden);
+}
+
+function togglePanel(side) {
+  const key = side === 'left' ? 'leftPanelHidden' : 'rightPanelHidden';
+  store.data.canvas[key] = !store.data.canvas[key];
+  applyPanelVisibility();
+  store.save();
 }
 
 function loadArchetype(archetypeKey) {

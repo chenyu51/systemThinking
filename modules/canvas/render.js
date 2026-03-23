@@ -3,7 +3,6 @@ Object.assign(Canvas.prototype, {
     const defs = this.svgElement.querySelector('defs');
     this.svgElement.innerHTML = '';
     if (defs) this.svgElement.appendChild(defs);
-    this.drawGrid();
     this.renderEdges();
     this.renderNodes();
     this.renderTexts();
@@ -85,25 +84,6 @@ Object.assign(Canvas.prototype, {
       });
       this.svgElement.appendChild(svgText);
     });
-  },
-
-  drawGrid() {
-    const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-    g.setAttribute('class', 'grid');
-    g.setAttribute('opacity', '0.1');
-    for (let x = 0; x < 1600; x += 50) g.appendChild(this.createGridLine(x, 0, x, 900));
-    for (let y = 0; y < 900; y += 50) g.appendChild(this.createGridLine(0, y, 1600, y));
-    this.svgElement.appendChild(g);
-  },
-
-  createGridLine(x1, y1, x2, y2) {
-    const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-    line.setAttribute('x1', x1);
-    line.setAttribute('y1', y1);
-    line.setAttribute('x2', x2);
-    line.setAttribute('y2', y2);
-    line.setAttribute('stroke', '#999');
-    return line;
   },
 
   makeDraggable(element, nodeId) {

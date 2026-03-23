@@ -17,8 +17,15 @@ window.CANVAS_MODULE_MANIFEST = {
     '../modules/canvas/events.js',
     '../modules/canvas/operations.js',
     '../modules/canvas/render.js',
+    '../modules/canvas/layout.js',
+    '../modules/canvas/system-concepts.js',
     '../modules/canvas/properties.js',
     '../modules/canvas/view.js'
+  ],
+  ai: [
+    '../modules/ai/config.js',
+    '../modules/ai/graph.js',
+    '../modules/ai/assistant.js'
   ],
   panel: [
     '../modules/panel/actions.js',

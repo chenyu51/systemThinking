@@ -4,7 +4,7 @@
   "version": "0.1.0",
   "description": "轻量级系统思维与可视化分析工具 - 绘制系统循环图、因果回路图、思维导图",
   "permissions": ["storage"],
-  "host_permissions": [],
+  "host_permissions": ["<all_urls>"],
   "action": {
     "default_popup": "popup/popup.html",
     "default_icon": {

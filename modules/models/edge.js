@@ -65,24 +65,7 @@ class CanvasEdge {
     // 计算路径
     const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
     
-    const x1 = sourceNode.x;
-    const y1 = sourceNode.y;
-    const x2 = targetNode.x;
-    const y2 = targetNode.y;
-
-    // 计算方向向量
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    const angle = Math.atan2(dy, dx);
-
-    // 从节点边缘开始的起点（考虑节点大小）
-    const startX = x1 + (sourceNode.width / 2) * Math.cos(angle);
-    const startY = y1 + (sourceNode.height / 2) * Math.sin(angle);
-
-    // 到节点边缘结束的终点
-    const endX = x2 - (targetNode.width / 2) * Math.cos(angle);
-    const endY = y2 - (targetNode.height / 2) * Math.sin(angle);
+    const { startX, startY, endX, endY, angle, dist } = this.getAnchoredPoints(sourceNode, targetNode);
 
     // 如果多条边，使用曲线并根据索引偏移
     let pathData;
@@ -94,7 +77,7 @@ class CanvasEdge {
       
       // 同一对节点的多条边均匀分布到中线两侧
       const center = (edgeCount - 1) / 2;
-      const offsetStep = edgeCount === 2 ? dist * 0.18 : dist * 0.12;
+      const offsetStep = edgeCount === 2 ? dist * 0.2 : dist * 0.13;
       const offset = (edgeIndex - center) * offsetStep * curveDirection;
       
       // 计算控制点
@@ -120,6 +103,13 @@ class CanvasEdge {
       path.setAttribute('stroke-dasharray', '5,5');
     }
 
+    const halo = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+    halo.setAttribute('d', pathData);
+    halo.setAttribute('stroke', 'rgba(255,255,255,0.92)');
+    halo.setAttribute('stroke-width', '6');
+    halo.setAttribute('fill', 'none');
+    halo.setAttribute('pointer-events', 'none');
+    g.appendChild(halo);
     g.appendChild(path);
 
     // 添加连线标签
@@ -146,14 +136,6 @@ class CanvasEdge {
         labelY = (startY + endY) / 2 - 8;
       }
       
-      text.setAttribute('x', labelX);
-      text.setAttribute('y', labelY);
-      text.setAttribute('text-anchor', 'middle');
-      text.setAttribute('font-size', '14');
-      text.setAttribute('fill', this.color);
-      text.setAttribute('font-weight', 'bold');
-      text.setAttribute('pointer-events', 'none');
-
       const displayParts = [];
       if (this.label) {
         displayParts.push(this.label);
@@ -170,7 +152,25 @@ class CanvasEdge {
       const displayText = displayParts.join(' ');
 
       text.textContent = displayText;
-      g.appendChild(text);
+      text.setAttribute('x', labelX);
+      text.setAttribute('y', labelY);
+      text.setAttribute('text-anchor', 'middle');
+      text.setAttribute('font-size', '14');
+      text.setAttribute('fill', this.color);
+      text.setAttribute('font-weight', 'bold');
+      text.setAttribute('pointer-events', 'none');
+      const textWidth = Math.max(28, displayText.length * 8 + 12);
+      const textBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      textBg.setAttribute('x', labelX - textWidth / 2);
+      textBg.setAttribute('y', labelY - 14);
+      textBg.setAttribute('width', textWidth);
+      textBg.setAttribute('height', '20');
+      textBg.setAttribute('rx', '10');
+      textBg.setAttribute('fill', 'rgba(255,255,255,0.92)');
+      textBg.setAttribute('stroke', 'rgba(226,232,240,0.95)');
+      textBg.setAttribute('stroke-width', '1');
+      textBg.setAttribute('pointer-events', 'none');
+      g.append(textBg, text);
     }
 
     // 添加交互区域（使用path而不是line，以支持曲线）
@@ -189,6 +189,24 @@ class CanvasEdge {
     });
 
     return g;
+  }
+
+  getAnchoredPoints(sourceNode, targetNode) {
+    const dx = targetNode.x - sourceNode.x;
+    const dy = targetNode.y - sourceNode.y;
+    const horizontal = Math.abs(dx) >= Math.abs(dy);
+    const sourceSide = horizontal ? (dx >= 0 ? 'right' : 'left') : (dy >= 0 ? 'bottom' : 'top');
+    const targetSide = horizontal ? (dx >= 0 ? 'left' : 'right') : (dy >= 0 ? 'top' : 'bottom');
+    const sourcePoint = sourceNode.getPortPosition(sourceSide);
+    const targetPoint = targetNode.getPortPosition(targetSide);
+    const gap = 0;
+    const startX = sourcePoint.x + (sourceSide === 'right' ? gap : sourceSide === 'left' ? -gap : 0);
+    const startY = sourcePoint.y + (sourceSide === 'bottom' ? gap : sourceSide === 'top' ? -gap : 0);
+    const endX = targetPoint.x + (targetSide === 'right' ? gap : targetSide === 'left' ? -gap : 0);
+    const endY = targetPoint.y + (targetSide === 'bottom' ? gap : targetSide === 'top' ? -gap : 0);
+    const angle = Math.atan2(endY - startY, endX - startX);
+    const dist = Math.sqrt((endX - startX) ** 2 + (endY - startY) ** 2);
+    return { startX, startY, endX, endY, angle, dist };
   }
 
   /**

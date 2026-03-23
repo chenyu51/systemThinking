@@ -8,7 +8,9 @@ class CanvasStore {
       version: '1.0',
       id: this.generateId(),
       name: '未命名画布',
+      description: '',
       templateInfo: null,
+      aiInfo: this.createDefaultAIInfo(),
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
       canvas: { zoom: 1, offsetX: 0, offsetY: 0, currentTool: 'select', currentNodeType: 'variable', nodes: [], edges: [], texts: [] }
@@ -19,13 +21,47 @@ class CanvasStore {
     return `canvas_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
+  createDefaultAIInfo() {
+    return {
+      description: '',
+      patterns: [],
+      leveragePoints: [],
+      systemConcepts: {
+        feedbackLoops: [],
+        stocks: [],
+        flows: [],
+        variables: [],
+        delays: [],
+        boundaries: [],
+        archetypes: []
+      },
+      prompt: '',
+      provider: '',
+      model: ''
+    };
+  }
+
   ensureCanvasData() {
+    this.data.name ||= '未命名画布';
+    this.data.description ||= '';
+    this.data.aiInfo = { ...this.createDefaultAIInfo(), ...(this.data.aiInfo || {}) };
+    this.data.aiInfo.patterns = Array.isArray(this.data.aiInfo.patterns) ? this.data.aiInfo.patterns : [];
+    this.data.aiInfo.leveragePoints = Array.isArray(this.data.aiInfo.leveragePoints) ? this.data.aiInfo.leveragePoints : [];
+    this.data.aiInfo.systemConcepts = {
+      ...this.createDefaultAIInfo().systemConcepts,
+      ...(this.data.aiInfo.systemConcepts || {})
+    };
+    Object.keys(this.data.aiInfo.systemConcepts).forEach((key) => {
+      this.data.aiInfo.systemConcepts[key] = Array.isArray(this.data.aiInfo.systemConcepts[key]) ? this.data.aiInfo.systemConcepts[key] : [];
+    });
     this.data.canvas ||= {};
     this.data.canvas.currentTool ||= 'select';
     this.data.canvas.currentNodeType ||= 'variable';
     this.data.canvas.zoom ||= 1;
     this.data.canvas.offsetX ||= 0;
     this.data.canvas.offsetY ||= 0;
+    this.data.canvas.leftPanelHidden ||= false;
+    this.data.canvas.rightPanelHidden ||= false;
     this.data.canvas.nodes = Array.isArray(this.data.canvas.nodes) ? this.data.canvas.nodes : [];
     this.data.canvas.edges = Array.isArray(this.data.canvas.edges) ? this.data.canvas.edges : [];
     this.data.canvas.texts = Array.isArray(this.data.canvas.texts) ? this.data.canvas.texts : [];
@@ -191,10 +227,11 @@ class CanvasStore {
   }
 
   clear() {
-    this.data.canvas.nodes = [];
-    this.data.canvas.edges = [];
-    this.data.canvas.texts = [];
-    this.data.templateInfo = null;
+    const canvasState = this.data.canvas || {};
+    const nextData = this.createDefaultData();
+    nextData.canvas.leftPanelHidden = !!canvasState.leftPanelHidden;
+    nextData.canvas.rightPanelHidden = !!canvasState.rightPanelHidden;
+    this.data = nextData;
   }
 
   getStats() {
