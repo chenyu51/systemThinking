@@ -50,6 +50,17 @@ function initializeEventListeners() {
     });
     popupCloseHandlerBound = true;
   }
+  
+  // Add keyboard shortcuts
+  document.addEventListener('keydown', (event) => {
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const isSaveShortcut = isMac ? (event.metaKey && event.key === 's') : (event.ctrlKey && event.key === 's');
+    
+    if (isSaveShortcut) {
+      event.preventDefault();
+      saveCanvas();
+    }
+  });
 }
 
 Object.assign(window, {
