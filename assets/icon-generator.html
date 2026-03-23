@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SystemCanvas 图标生成器</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            padding: 40px;
+            max-width: 900px;
+            width: 100%;
+        }
+
+        h1 {
+            color: #2c3e50;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .subtitle {
+            color: #7f8c8d;
+            text-align: center;
+            margin-bottom: 40px;
+            font-size: 14px;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 24px;
+            margin-bottom: 40px;
+        }
+
+        .icon-preview {
+            background: #f9f9f9;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 20px;
+            text-align: center;
+            transition: all 0.3s ease;
+        }
+
+        .icon-preview:hover {
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+        }
+
+        .icon-preview h3 {
+            color: #667eea;
+            font-size: 16px;
+            margin-bottom: 12px;
+        }
+
+        .icon-box {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 12px;
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        canvas {
+            display: block;
+            margin: 0 auto;
+        }
+
+        .icon-info {
+            font-size: 12px;
+            color: #999;
+            margin-bottom: 12px;
+        }
+
+        .download-btn {
+            display: block;
+            width: 100%;
+            padding: 10px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s ease;
+            text-decoration: none;
+            text-align: center;
+        }
+
+        .download-btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
+        }
+
+        .controls {
+            background: #f5f5f5;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .control-group {
+            margin-bottom: 16px;
+        }
+
+        .control-group label {
+            display: block;
+            font-size: 13px;
+            color: #333;
+            margin-bottom: 6px;
+            font-weight: 600;
+        }
+
+        .color-inputs {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 12px;
+        }
+
+        .color-input {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .color-input input {
+            width: 50px;
+            height: 40px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .color-input span {
+            font-size: 12px;
+            color: #666;
+            flex: 1;
+        }
+
+        button[type="button"] {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s ease;
+        }
+
+        button[type="button"]:hover {
+            background: #5568d3;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .action-buttons button {
+            flex: 1;
+        }
+
+        .status {
+            text-align: center;
+            color: #27ae60;
+            font-size: 13px;
+            margin-top: 16px;
+        }
+
+        .status.error {
+            color: #e74c3c;
+        }
+
+        footer {
+            text-align: center;
+            color: #999;
+            font-size: 12px;
+            margin-top: 40px;
+            border-top: 1px solid #e0e0e0;
+            padding-top: 20px;
+        }
+
+        @media (max-width: 600px) {
+            .container {
+                padding: 20px;
+            }
+
+            .grid {
+                grid-template-columns: 1fr;
+            }
+
+            .action-buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 SystemCanvas 图标生成器</h1>
+        <p class="subtitle">自定义设计，一键生成</p>
+
+        <div class="controls">
+            <div class="control-group">
+                <label>自定义颜色</label>
+                <div class="color-inputs">
+                    <div class="color-input">
+                        <input type="color" id="bgColor" value="#667eea" title="背景色">
+                        <span>背景</span>
+                    </div>
+                    <div class="color-input">
+                        <input type="color" id="color1" value="#FFD700" title="节点1">
+                        <span>节点1</span>
+                    </div>
+                    <div class="color-input">
+                        <input type="color" id="color2" value="#FF6B6B" title="节点2">
+                        <span>节点2</span>
+                    </div>
+                    <div class="color-input">
+                        <input type="color" id="color3" value="#51CF66" title="节点3">
+                        <span>节点3</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button type="button" onclick="generateAll()">🔄 预览更新</button>
+                <button type="button" onclick="resetColors()">↺ 重置颜色</button>
+            </div>
+            <div class="status" id="status"></div>
+        </div>
+
+        <div class="grid" id="iconGrid"></div>
+
+        <div style="text-align: center;">
+            <button onclick="downloadAllZip()" style="background: #27ae60; padding: 12px 32px; font-size: 14px;">
+                ⬇️ 下载所有图标 (ZIP)
+            </button>
+            <p style="color: #999; font-size: 12px; margin-top: 12px;">所有图标将保存到 assets/ 文件夹</p>
+        </div>
+
+        <footer>
+            SystemCanvas v0.1.0 | 💡 在线生成 PNG 图标 | 支持批量下载
+        </footer>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    
+    <script>
+        const SIZES = [16, 48, 128];
+
+        function drawIcon(canvas, size, colors) {
+            const ctx = canvas.getContext('2d');
+            const scale = size / 512;
+
+            // 清空画布
+            ctx.fillStyle = colors.bg;
+            ctx.fillRect(0, 0, size, size);
+
+            // 绘制圆角背景
+            ctx.fillStyle = colors.bg;
+            const radius = 110 * scale;
+            roundRect(ctx, 0, 0, size, size, radius);
+            ctx.fill();
+
+            // 节点半径
+            const nodeRadius = 35 * scale;
+
+            // 节点位置
+            const nodes = [
+                { x: 150 * scale, y: 150 * scale, color: colors.c1 },
+                { x: 362 * scale, y: 150 * scale, color: colors.c2 },
+                { x: 256 * scale, y: 320 * scale, color: colors.c3 }
+            ];
+
+            // 绘制连线
+            ctx.strokeStyle = colors.c3;
+            ctx.lineWidth = 3 * scale;
+            ctx.beginPath();
+            ctx.moveTo(180 * scale, 140 * scale);
+            ctx.lineTo(332 * scale, 140 * scale);
+            ctx.stroke();
+
+            ctx.strokeStyle = colors.c2;
+            ctx.beginPath();
+            ctx.moveTo(345 * scale, 175 * scale);
+            ctx.lineTo(285 * scale, 295 * scale);
+            ctx.stroke();
+
+            ctx.strokeStyle = '#667eea';
+            ctx.beginPath();
+            ctx.moveTo(235 * scale, 295 * scale);
+            ctx.lineTo(170 * scale, 175 * scale);
+            ctx.stroke();
+
+            // 绘制节点
+            nodes.forEach(node => {
+                ctx.fillStyle = node.color;
+                ctx.beginPath();
+                ctx.arc(node.x, node.y, nodeRadius, 0, Math.PI * 2);
+                ctx.fill();
+
+                // 边框
+                ctx.strokeStyle = '#fff';
+                ctx.lineWidth = 3 * scale;
+                ctx.stroke();
+            });
+
+            // 绘制标记（只在较大尺寸显示）
+            if (size >= 48) {
+                ctx.fillStyle = colors.c3;
+                ctx.font = `bold ${20 * scale}px Arial`;
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText('+', 256 * scale, 125 * scale);
+
+                ctx.fillStyle = colors.c2;
+                ctx.fillText('-', 330 * scale, 240 * scale);
+            }
+        }
+
+        function roundRect(ctx, x, y, w, h, r) {
+            if (w < 2 * r) r = w / 2;
+            if (h < 2 * r) r = h / 2;
+            ctx.beginPath();
+            ctx.moveTo(x + r, y);
+            ctx.arcTo(x + w, y, x + w, y + h, r);
+            ctx.arcTo(x + w, y + h, x, y + h, r);
+            ctx.arcTo(x, y + h, x, y, r);
+            ctx.arcTo(x, y, x + w, y, r);
+            ctx.closePath();
+            return ctx;
+        }
+
+        function generateAll() {
+            const colors = {
+                bg: document.getElementById('bgColor').value,
+                c1: document.getElementById('color1').value,
+                c2: document.getElementById('color2').value,
+                c3: document.getElementById('color3').value
+            };
+
+            const grid = document.getElementById('iconGrid');
+            grid.innerHTML = '';
+
+            SIZES.forEach(size => {
+                const preview = document.createElement('div');
+                preview.className = 'icon-preview';
+
+                const canvas = document.createElement('canvas');
+                canvas.width = size;
+                canvas.height = size;
+                canvas.style.border = '1px solid #e0e0e0';
+                canvas.style.borderRadius = '4px';
+
+                drawIcon(canvas, size, colors);
+
+                const info = document.createElement('div');
+                info.className = 'icon-info';
+                info.textContent = `${size}×${size} px`;
+
+                const btn = document.createElement('button');
+                btn.className = 'download-btn';
+                btn.textContent = '⬇️ 下载 PNG';
+                btn.onclick = () => downloadIcon(canvas, `icon-${size}.png`);
+
+                preview.innerHTML = `<h3>${size}×${size} 图标</h3>`;
+                preview.appendChild(canvas);
+                preview.appendChild(info);
+                preview.appendChild(btn);
+
+                grid.appendChild(preview);
+            });
+
+            updateStatus('✅ 图标已更新！', false);
+        }
+
+        function downloadIcon(canvas, filename) {
+            canvas.toBlob(blob => {
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = filename;
+                a.click();
+                URL.revokeObjectURL(url);
+            }, 'image/png');
+        }
+
+        async function downloadAllZip() {
+            const colors = {
+                bg: document.getElementById('bgColor').value,
+                c1: document.getElementById('color1').value,
+                c2: document.getElementById('color2').value,
+                c3: document.getElementById('color3').value
+            };
+
+            try {
+                updateStatus('📦 正在打包...', false);
+
+                const zip = new JSZip();
+
+                for (const size of SIZES) {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = size;
+                    canvas.height = size;
+
+                    drawIcon(canvas, size, colors);
+
+                    const blob = await new Promise(resolve => canvas.toBlob(resolve, 'image/png'));
+                    zip.file(`icon-${size}.png`, blob);
+                }
+
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+                const url = URL.createObjectURL(zipBlob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'systemcanvas-icons.zip';
+                a.click();
+                URL.revokeObjectURL(url);
+
+                updateStatus('✅ 图标已下载！复制到 assets/ 文件夹', false);
+            } catch (error) {
+                updateStatus('❌ 下载失败：' + error.message, true);
+            }
+        }
+
+        function resetColors() {
+            document.getElementById('bgColor').value = '#667eea';
+            document.getElementById('color1').value = '#FFD700';
+            document.getElementById('color2').value = '#FF6B6B';
+            document.getElementById('color3').value = '#51CF66';
+            generateAll();
+            updateStatus('↺ 颜色已重置', false);
+        }
+
+        function updateStatus(msg, isError) {
+            const status = document.getElementById('status');
+            status.textContent = msg;
+            status.className = isError ? 'status error' : 'status';
+        }
+
+        // 首次加载时生成
+        window.addEventListener('load', () => {
+            generateAll();
+        });
+    </script>
+</body>
+</html>

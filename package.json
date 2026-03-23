@@ -1,0 +1,24 @@
+{
+  "name": "systemcanvas",
+  "version": "0.1.0",
+  "description": "轻量级系统思维与可视化分析工具 - Chrome插件",
+  "main": "background.js",
+  "scripts": {
+    "generate-icons": "node generate-icons.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "chrome-extension",
+    "system-thinking",
+    "causal-loop-diagram",
+    "visualization"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "sharp": "^0.33.0"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}

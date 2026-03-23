@@ -1,0 +1,45 @@
+<svg width="512" height="512" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg">
+  <!-- 背景 -->
+  <rect width="512" height="512" rx="110" fill="#667eea"/>
+  
+  <!-- 装饰圆 -->
+  <circle cx="256" cy="256" r="200" fill="none" stroke="rgba(255,255,255,0.15)" stroke-width="2"/>
+  <circle cx="256" cy="256" r="150" fill="none" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
+  
+  <!-- 左上节点 -->
+  <circle cx="150" cy="150" r="35" fill="#FFD700" stroke="#fff" stroke-width="3"/>
+  
+  <!-- 右上节点 -->
+  <circle cx="362" cy="150" r="35" fill="#FF6B6B" stroke="#fff" stroke-width="3"/>
+  
+  <!-- 下方节点 -->
+  <circle cx="256" cy="320" r="35" fill="#51CF66" stroke="#fff" stroke-width="3"/>
+  
+  <!-- 连线：左上 -> 右上（正反馈，绿线）-->
+  <defs>
+    <marker id="arrowPositive" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#51CF66"/>
+    </marker>
+    <marker id="arrowNegative" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#FF6B6B"/>
+    </marker>
+    <marker id="arrowBlue" markerWidth="10" markerHeight="10" refX="9" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#667eea"/>
+    </marker>
+  </defs>
+  
+  <!-- 连线 1: 左上 -> 右上 -->
+  <line x1="180" y1="140" x2="332" y2="140" stroke="#51CF66" stroke-width="3" marker-end="url(#arrowPositive)"/>
+  <text x="256" y="125" font-size="20" font-weight="bold" fill="#51CF66" text-anchor="middle">+</text>
+  
+  <!-- 连线 2: 右上 -> 下方 -->
+  <line x1="345" y1="175" x2="285" y2="295" stroke="#FF6B6B" stroke-width="3" marker-end="url(#arrowNegative)"/>
+  <text x="330" y="240" font-size="20" font-weight="bold" fill="#FF6B6B" text-anchor="middle">-</text>
+  
+  <!-- 连线 3: 下方 -> 左上 -->
+  <line x1="235" y1="295" x2="170" y2="175" stroke="#667eea" stroke-width="3" marker-end="url(#arrowBlue)"/>
+  <text x="180" y="255" font-size="18" font-weight="bold" fill="#667eea" text-anchor="middle">→</text>
+  
+  <!-- 中心标签（可选） -->
+  <text x="256" y="395" font-size="24" font-weight="bold" fill="#fff" text-anchor="middle">Canvas</text>
+</svg>

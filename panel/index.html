@@ -1,0 +1,303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title data-i18n="app.title">SystemCanvas - 主画布</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: #f5f5f5;
+            display: flex;
+            height: 100vh;
+            color: #2c3e50;
+        }
+
+        .toolbar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 60px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            gap: 16px;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+
+        .toolbar-title {
+            flex: 1;
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .toolbar-buttons {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        button {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            background: #f0f0f0;
+            cursor: pointer;
+            font-size: 13px;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        button:hover {
+            background: #e0e0e0;
+        }
+
+        button.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .layout {
+            display: flex;
+            margin-top: 60px;
+            flex: 1;
+            width: 100%;
+        }
+
+        .sidebar {
+            width: 240px;
+            background: white;
+            border-right: 1px solid #e0e0e0;
+            overflow-y: auto;
+            padding: 16px;
+        }
+
+        .sidebar-section {
+            margin-bottom: 24px;
+        }
+
+        .sidebar-title {
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            color: #999;
+            margin-bottom: 12px;
+        }
+
+        .tool-item {
+            padding: 10px 12px;
+            margin-bottom: 8px;
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-align: center;
+            font-size: 13px;
+        }
+
+        .tool-item:hover {
+            background: #f0f0f0;
+            border-color: #667eea;
+        }
+
+        .tool-item.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .canvas-container {
+            flex: 1;
+            background: #fafafa;
+            position: relative;
+            overflow: hidden;
+        }
+
+        svg {
+            width: 100%;
+            height: 100%;
+            background: white;
+        }
+
+        .properties-panel {
+            width: 280px;
+            background: white;
+            border-left: 1px solid #e0e0e0;
+            padding: 16px;
+            overflow-y: auto;
+        }
+
+        .property-group {
+            margin-bottom: 16px;
+        }
+
+        .property-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: #666;
+            margin-bottom: 6px;
+            text-transform: uppercase;
+        }
+
+        .property-input {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 13px;
+        }
+
+        .status-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 30px;
+            background: #f0f0f0;
+            border-top: 1px solid #e0e0e0;
+            display: flex;
+            align-items: center;
+            padding: 0 20px;
+            font-size: 12px;
+            color: #999;
+            gap: 20px;
+        }
+
+        .layout {
+            margin-bottom: 30px;
+        }
+
+        /* 响应式 */
+        @media (max-width: 1200px) {
+            .sidebar, .properties-panel {
+                width: 200px;
+            }
+        }
+
+        @media (max-width: 900px) {
+            .sidebar, .properties-panel {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="toolbar">
+        <div class="toolbar-title">📊 SystemCanvas</div>
+        <div class="toolbar-buttons">
+            <button id="btnTemplate">📚 模版</button>
+            <button id="btnNew">+ 新建</button>
+            <button id="btnOpen">打开</button>
+            <button id="btnSave">💾 保存</button>
+            <button id="btnExport">导出 ▼</button>
+            <button id="btnUndo">↶ 撤销</button>
+            <button id="btnRedo">↷ 重做</button>
+            <button id="btnSettings">⚙️ 设置</button>
+        </div>
+    </div>
+
+    <div class="layout">
+        <div class="sidebar">
+            <div class="sidebar-section">
+                <div class="sidebar-title" data-i18n="sidebar.tools">工具</div>
+                <div class="tool-item active" data-tool="select" data-i18n="tool.select.full">
+                    👆 选择工具
+                </div>
+                <div class="tool-item" data-tool="node" data-i18n="tool.node">
+                    ⭕ 添加节点
+                </div>
+                <div class="tool-item" data-tool="edge" data-i18n="tool.edge">
+                    ➜ 绘制连线
+                </div>
+                <div class="tool-item" data-tool="text" data-i18n="tool.text">
+                    📝 添加文本
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-title" data-i18n="sidebar.nodeTypes">节点类型</div>
+                <div class="tool-item" data-type="variable" data-i18n="nodeType.variable">
+                    变量
+                </div>
+                <div class="tool-item" data-type="stock" data-i18n="nodeType.stock">
+                    存量 (Stock)
+                </div>
+                <div class="tool-item" data-type="flow" data-i18n="nodeType.flow">
+                    流量 (Flow)
+                </div>
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <svg id="canvas"></svg>
+        </div>
+
+        <div class="properties-panel">
+            <div class="property-group">
+                <div class="property-label" data-i18n="properties.selected">选中元素</div>
+                <div id="selectedInfo" data-i18n="selected.none">无</div>
+            </div>
+
+            <div class="property-group" id="nodeProperties" style="display: none;">
+                <div class="property-label" data-i18n="properties.nodeLabel">节点标签</div>
+                <input type="text" class="property-input" id="nodeLabel" data-i18n-placeholder="properties.nodeLabelPlaceholder" placeholder="输入节点名称">
+                
+                <div class="property-label" style="margin-top: 12px;" data-i18n="properties.color">颜色</div>
+                <input type="color" class="property-input" id="nodeColor">
+
+                <div class="property-label" style="margin-top: 12px;" data-i18n="properties.shape">形状</div>
+                <select class="property-input" id="nodeShape">
+                    <option value="rectangle" data-i18n="shape.rectangle">矩形</option>
+                    <option value="circle" data-i18n="shape.circle">圆形</option>
+                    <option value="diamond" data-i18n="shape.diamond">菱形</option>
+                </select>
+            </div>
+
+            <div class="property-group" id="edgeProperties" style="display: none;">
+                <div class="property-label" data-i18n="properties.edgeType">连线类型</div>
+                <select class="property-input" id="edgeType">
+                    <option value="positive" data-i18n="edgeType.positive">正反馈 (+)</option>
+                    <option value="negative" data-i18n="edgeType.negative">负反馈 (-)</option>
+                    <option value="neutral" data-i18n="edgeType.neutral">中立</option>
+                </select>
+
+                <div class="property-label" style="margin-top: 12px;" data-i18n="properties.edgeLabel">标签</div>
+                <input type="text" class="property-input" id="edgeLabel" data-i18n-placeholder="properties.edgeLabelPlaceholder" placeholder="输入连线标签">
+
+                <label style="margin-top: 12px; display: flex; align-items: center; gap: 6px;">
+                    <input type="checkbox" id="edgeDelay">
+                    <span data-i18n="properties.edgeDelay">有延迟 (//)</span>
+                </label>
+            </div>
+        </div>
+    </div>
+
+    <div class="status-bar">
+        <span id="status" data-i18n="message.ready">准备就绪</span>
+        <span id="nodeCount">节点: 0</span>
+        <span id="edgeCount">连线: 0</span>
+        <span id="zoom">缩放: 100%</span>
+    </div>
+
+    <!-- 核心脚本 -->
+    <script src="i18n.js"></script>
+    <script src="store.js"></script>
+    <script src="node.js"></script>
+    <script src="edge.js"></script>
+    <script src="canvas.js"></script>
+    <script src="panel.js"></script>
+</body>
+</html>

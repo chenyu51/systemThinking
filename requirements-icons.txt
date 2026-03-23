@@ -1,0 +1,5 @@
+# SystemCanvas 图标生成工具依赖
+# 用法: pip3 install -r requirements-icons.txt
+
+cairosvg>=2.7.0
+pillow>=10.0.0
