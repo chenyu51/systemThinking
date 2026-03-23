@@ -1,20 +1,10 @@
 Object.assign(Canvas.prototype, {
   updateProperties() {
     this.updateGraphInfo();
-    const templateInfoGroup = document.getElementById('templateInfoGroup');
-    const templateName = document.getElementById('templateName');
-    const templateDescription = document.getElementById('templateDescription');
-    const aiInfoGroup = document.getElementById('aiInfoGroup');
-    const aiDescription = document.getElementById('aiDescription');
-    const aiPatterns = document.getElementById('aiPatterns');
-    const aiLeveragePoints = document.getElementById('aiLeveragePoints');
     const selectedInfo = document.getElementById('selectedInfo');
     const nodeProperties = document.getElementById('nodeProperties');
     const edgeProperties = document.getElementById('edgeProperties');
     const textProperties = document.getElementById('textProperties');
-    this.updateTemplateInfo(templateInfoGroup, templateName, templateDescription);
-    this.updateAIInfo(aiInfoGroup, aiDescription, aiPatterns, aiLeveragePoints);
-    this.updateSystemConceptPanel();
     nodeProperties.style.display = 'none';
     edgeProperties.style.display = 'none';
     textProperties.style.display = 'none';
@@ -40,33 +30,6 @@ Object.assign(Canvas.prototype, {
   applyGraphInfoUpdates(updates) {
     Object.assign(store.data, updates);
     this.persistCanvasState();
-  },
-
-  updateTemplateInfo(group, name, description) {
-    if (!store.data.templateInfo?.name) {
-      group.style.display = 'none';
-      name.textContent = '';
-      description.textContent = '';
-      return;
-    }
-    group.style.display = 'block';
-    name.textContent = store.data.templateInfo.name;
-    description.textContent = store.data.templateInfo.description || i18n.t('template.noDescription');
-  },
-
-  updateAIInfo(group, description, patterns, leveragePoints) {
-    const aiInfo = store.data.aiInfo;
-    if (!aiInfo?.description && !aiInfo?.patterns?.length && !aiInfo?.leveragePoints?.length) {
-      group.style.display = 'none';
-      description.textContent = '';
-      patterns.innerHTML = '';
-      leveragePoints.innerHTML = '';
-      return;
-    }
-    group.style.display = 'block';
-    description.innerHTML = this.renderEmphasisText(aiInfo.description || '');
-    patterns.innerHTML = this.renderInfoList(aiInfo.patterns);
-    leveragePoints.innerHTML = this.renderInfoList(aiInfo.leveragePoints);
   },
 
   renderInfoList(items = []) {

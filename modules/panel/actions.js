@@ -158,8 +158,12 @@ function relayoutCanvas() {
 }
 
 function applyPanelVisibility() {
-  document.querySelector('.sidebar')?.classList.toggle('is-hidden', !!store.data.canvas.leftPanelHidden);
-  document.querySelector('.properties-panel')?.classList.toggle('is-hidden', !!store.data.canvas.rightPanelHidden);
+  const leftHidden = !!store.data.canvas.leftPanelHidden;
+  const rightHidden = !!store.data.canvas.rightPanelHidden;
+  document.querySelector('.sidebar')?.classList.toggle('is-hidden', leftHidden);
+  document.querySelector('.properties-panel')?.classList.toggle('is-hidden', rightHidden);
+  document.getElementById('btnShowLeftPanel')?.classList.toggle('is-hidden', !leftHidden);
+  document.getElementById('btnShowRightPanel')?.classList.toggle('is-hidden', !rightHidden);
 }
 
 function togglePanel(side) {

@@ -1,4 +1,4 @@
-let aiAssistantState = null;
+let aiAssistantState = null, aiAssistantUI = { prompt: '', logs: [], result: null, error: '', textarea: null, resultBox: null, logBox: null };
 
 async function requestAIGraph(prompt, logger = () => {}) {
   return requestAIJSON({
@@ -16,32 +16,42 @@ async function requestAIInsights(prompt, logger = () => {}) {
   }, prompt);
 }
 
-async function requestAIJSON(options, prompt) {
-  const { provider = 'openai', baseUrl, apiKey, model } = await getAIConfig();
-  if (!baseUrl || !apiKey || !model) {
-    throw new Error(i18n.t('ai.missingConfig'));
-  }
+async function requestAIAnswer(prompt, logger = () => {}) {
+  const result = await requestAI(providerOptions => ({
+    ...providerOptions,
+    requestPrompt: prompt,
+    systemPrompt: '你是系统思维问答助手。请直接回答用户问题，给出清晰、简洁、有结构的中文回答。',
+    jsonMode: false
+  }), logger);
+  return { answer: parseAIText(result.provider, result.raw), raw: result.raw, meta: result.meta };
+}
 
-  const { logger = () => {}, requestPrompt, systemPrompt } = options;
+async function requestAIJSON(options, prompt) {
+  const result = await requestAI((providerOptions) => ({ ...providerOptions, ...options }), options.logger);
+  const graph = parseAIResponse(result.provider, result.raw);
+  options.logger?.(i18n.t('ai.stepParsed', { nodes: Array.isArray(graph.nodes) ? graph.nodes.length : 0, edges: Array.isArray(graph.edges) ? graph.edges.length : 0 }));
+  return { graph, raw: result.raw, meta: { prompt, provider: result.provider, model: result.model } };
+}
+
+async function requestAI(builder, logger = () => {}) {
+  const { provider = 'openai', baseUrl, apiKey, model } = await getAIConfig();
+  if (!baseUrl || !apiKey || !model) throw new Error(i18n.t('ai.missingConfig'));
+  const { requestPrompt, systemPrompt, jsonMode = true } = builder({ provider, baseUrl, apiKey, model });
   logger(i18n.t('ai.stepConfigLoaded', { provider, model }));
   logger(i18n.t('ai.stepRequestReady', { url: baseUrl }));
-  const response = await fetch(baseUrl, buildAIRequestOptions(provider, apiKey, model, requestPrompt, systemPrompt));
+  const response = await fetch(baseUrl, buildAIRequestOptions(provider, apiKey, model, requestPrompt, systemPrompt, jsonMode));
   logger(i18n.t('ai.stepResponseReceived', { status: response.status }));
-
   if (!response.ok) {
     const text = await response.text();
     logger(i18n.t('ai.stepRequestFailed'));
     throw new Error(text || `HTTP ${response.status}`);
   }
-
-  const data = await response.json();
+  const raw = await response.json();
   logger(i18n.t('ai.stepParsing'));
-  const graph = parseAIResponse(provider, data);
-  logger(i18n.t('ai.stepParsed', { nodes: Array.isArray(graph.nodes) ? graph.nodes.length : 0, edges: Array.isArray(graph.edges) ? graph.edges.length : 0 }));
-  return { graph, raw: data, meta: { prompt, provider, model } };
+  return { raw, provider, model, meta: { provider, model } };
 }
 
-function buildAIRequestOptions(provider, apiKey, model, prompt, systemPrompt) {
+function buildAIRequestOptions(provider, apiKey, model, prompt, systemPrompt, jsonMode = true) {
   if (provider === 'anthropic') {
     return {
       method: 'POST',
@@ -58,7 +68,6 @@ function buildAIRequestOptions(provider, apiKey, model, prompt, systemPrompt) {
       })
     };
   }
-
   return {
     method: 'POST',
     headers: {
@@ -68,11 +77,11 @@ function buildAIRequestOptions(provider, apiKey, model, prompt, systemPrompt) {
     body: JSON.stringify({
       model,
       temperature: 0.3,
-      response_format: { type: 'json_object' },
       messages: [
         { role: 'system', content: systemPrompt },
         { role: 'user', content: prompt }
       ]
+      , ...(jsonMode ? { response_format: { type: 'json_object' } } : {})
     })
   };
 }
@@ -84,9 +93,14 @@ function parseAIResponse(provider, data) {
       : '{}';
     return JSON.parse(extractJSONText(content));
   }
-
   const content = data.choices?.[0]?.message?.content || '{}';
   return JSON.parse(extractJSONText(content));
+}
+
+function parseAIText(provider, data) {
+  if (provider === 'anthropic') return Array.isArray(data.content) ? data.content.filter((item) => item.type === 'text').map((item) => item.text).join('\n').trim() : '';
+  const content = data.choices?.[0]?.message?.content;
+  return Array.isArray(content) ? content.map((item) => item.text || '').join('\n').trim() : String(content || '').trim();
 }
 
 function extractJSONText(content) {
@@ -95,7 +109,6 @@ function extractJSONText(content) {
   if (fenced?.[1]) {
     return fenced[1].trim();
   }
-
   const start = text.indexOf('{');
   const end = text.lastIndexOf('}');
   if (start !== -1 && end !== -1 && end >= start) {
@@ -109,24 +122,8 @@ function applyAIGraphToCanvas(aiResult) {
   mergeAIGraphIntoCanvas(aiResult);
 }
 
-function buildAIResultView(resultBox, aiResult) {
-  resultBox.innerHTML = '';
-  const title = document.createElement('div');
-  title.style.cssText = 'font-weight:600;color:#333;margin-bottom:8px;';
-  title.textContent = i18n.t('ai.result');
-  const graphPre = document.createElement('pre');
-  graphPre.style.cssText = 'white-space:pre-wrap;word-break:break-word;font-size:12px;line-height:1.5;color:#555;background:#f8f8f8;border:1px solid #eee;border-radius:6px;padding:10px;max-height:180px;overflow:auto;margin-bottom:10px;';
-  graphPre.textContent = JSON.stringify(aiResult.graph, null, 2);
-  const rawTitle = document.createElement('div');
-  rawTitle.style.cssText = 'font-weight:600;color:#333;margin-bottom:8px;';
-  rawTitle.textContent = i18n.t('ai.rawResponse');
-  const rawPre = document.createElement('pre');
-  rawPre.style.cssText = 'white-space:pre-wrap;word-break:break-word;font-size:12px;line-height:1.5;color:#555;background:#f8f8f8;border:1px solid #eee;border-radius:6px;padding:10px;max-height:220px;overflow:auto;';
-  rawPre.textContent = JSON.stringify(aiResult.raw, null, 2);
-  resultBox.append(title, graphPre, rawTitle, rawPre);
-}
-
 function appendAILog(logBox, message) {
+  aiAssistantUI.logs.push(message);
   const item = document.createElement('div');
   item.style.cssText = 'padding:6px 8px;border-bottom:1px solid #f0f0f0;line-height:1.5;';
   item.textContent = message;
@@ -134,14 +131,46 @@ function appendAILog(logBox, message) {
   logBox.scrollTop = logBox.scrollHeight;
 }
 
+function syncAIAssistantView() {
+  const { textarea, resultBox, logBox } = aiAssistantUI;
+  if (!textarea || !resultBox || !logBox) return;
+  textarea.value = aiAssistantUI.prompt || '';
+  logBox.innerHTML = '';
+  (aiAssistantUI.logs.length ? aiAssistantUI.logs : [i18n.t('ai.processIdle')]).forEach((message) => logBox.appendChild(Object.assign(document.createElement('div'), {
+    style: 'padding:6px 8px;border-bottom:1px solid #f0f0f0;line-height:1.5;', textContent: message
+  })));
+  if (aiAssistantUI.result) buildAIResultView(resultBox, aiAssistantUI.result);
+  else resultBox.textContent = aiAssistantUI.error || i18n.t('ai.empty');
+}
+
+async function runAIAction(textarea, resultBox, logBox, requester, onSuccess) {
+  try {
+    aiAssistantUI.prompt = textarea.value.trim();
+    aiAssistantUI.result = null;
+    aiAssistantUI.error = '';
+    resultBox.textContent = i18n.t('ai.generating');
+    aiAssistantUI.logs = [];
+    appendAILog(logBox, i18n.t('ai.processIdle'));
+    appendAILog(logBox, i18n.t('ai.stepStart'));
+    aiAssistantState = await requester(aiAssistantUI.prompt, (message) => appendAILog(aiAssistantUI.logBox || logBox, message));
+    aiAssistantUI.result = aiAssistantState;
+    onSuccess?.(aiAssistantState);
+    buildAIResultView(resultBox, aiAssistantState);
+  } catch (error) {
+    aiAssistantUI.error = error.message || String(error);
+    appendAILog(aiAssistantUI.logBox || logBox, `${i18n.t('ai.stepError')} ${aiAssistantUI.error}`);
+    resultBox.textContent = aiAssistantUI.error;
+  }
+}
+
 function showAIAssistant() {
   document.querySelector('.ai-assistant-menu')?.remove();
   const menu = document.createElement('div');
   menu.className = 'ai-assistant-menu';
-  menu.style.cssText = 'position:fixed;top:70px;right:260px;background:white;border:1px solid #e0e0e0;border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.18);z-index:2000;width:420px;max-height:80vh;overflow:auto;padding:16px;';
+  menu.style.cssText = 'position:fixed;top:60px;right:0;bottom:30px;width:min(560px,calc(100vw - 24px));background:white;border-left:1px solid #e0e0e0;box-shadow:-12px 0 28px rgba(15,23,42,.12);z-index:2000;overflow:auto;padding:16px 16px 20px;';
 
   const title = document.createElement('div');
-  title.style.cssText = 'font-weight:600;color:#333;margin-bottom:12px;';
+  title.style.cssText = 'font-weight:700;color:#0f172a;margin-bottom:12px;font-size:16px;';
   title.textContent = i18n.t('ai.title');
 
   const textarea = document.createElement('textarea');
@@ -171,6 +200,11 @@ function showAIAssistant() {
   extractButton.textContent = i18n.t('ai.extractInsights');
   extractButton.style.cssText = 'flex:1 1 calc(50% - 4px);justify-content:center;';
 
+  const answerButton = document.createElement('button');
+  answerButton.type = 'button';
+  answerButton.textContent = i18n.currentLang === 'zh-CN' ? '问答' : 'Q&A';
+  answerButton.style.cssText = 'flex:1 1 calc(50% - 4px);justify-content:center;';
+
   const applyButton = document.createElement('button');
   applyButton.type = 'button';
   applyButton.textContent = i18n.t('ai.apply');
@@ -190,54 +224,37 @@ function showAIAssistant() {
   resultBox.style.cssText = 'font-size:12px;color:#666;';
   resultBox.textContent = i18n.t('ai.empty');
 
-  const logTitle = document.createElement('div');
-  logTitle.style.cssText = 'font-weight:600;color:#333;margin:12px 0 8px;';
-  logTitle.textContent = i18n.t('ai.process');
-
   const logBox = document.createElement('div');
-  logBox.style.cssText = 'font-size:12px;color:#555;background:#fafafa;border:1px solid #eee;border-radius:6px;max-height:180px;overflow:auto;';
+  logBox.style.cssText = 'font-size:12px;color:#555;background:#fafafa;border:1px solid #eee;border-radius:8px;max-height:220px;overflow:auto;';
+  const logSection = document.createElement('details');
+  logSection.open = true;
+  logSection.style.cssText = 'border:1px solid #e2e8f0;border-radius:10px;background:#fff;overflow:hidden;margin-top:12px;';
+  const logSummary = document.createElement('summary');
+  logSummary.textContent = i18n.t('ai.process');
+  logSummary.style.cssText = 'cursor:pointer;list-style:none;padding:10px 12px;font-weight:600;color:#0f172a;background:#f8fafc;border-bottom:1px solid #e2e8f0;';
+  const logBody = document.createElement('div');
+  logBody.style.cssText = 'padding:12px;';
+  logBody.appendChild(logBox);
+  logSection.append(logSummary, logBody);
 
-  function resetLog() {
-    logBox.innerHTML = '';
-    appendAILog(logBox, i18n.t('ai.processIdle'));
-  }
-
-  resetLog();
+  Object.assign(aiAssistantUI, { textarea, resultBox, logBox });
+  textarea.oninput = () => { aiAssistantUI.prompt = textarea.value; };
+  syncAIAssistantView();
+  if (!aiAssistantUI.logs.length && !aiAssistantUI.result && !aiAssistantUI.error) appendAILog(logBox, i18n.t('ai.processIdle'));
 
   patternButton.onclick = () => {
     textarea.value = `${textarea.value.trim()}\n\n请重点识别当前系统中的关键模式。`.trim();
+    aiAssistantUI.prompt = textarea.value;
   };
 
   leverageButton.onclick = () => {
     textarea.value = `${textarea.value.trim()}\n\n请重点识别当前系统中的关键杠杆点。`.trim();
+    aiAssistantUI.prompt = textarea.value;
   };
 
-  extractButton.onclick = async () => {
-    try {
-      resultBox.textContent = i18n.t('ai.generating');
-      resetLog();
-      appendAILog(logBox, i18n.t('ai.stepStart'));
-      aiAssistantState = await requestAIInsights(textarea.value.trim(), (message) => appendAILog(logBox, message));
-      applyAIInsightToCanvas(aiAssistantState);
-      buildAIResultView(resultBox, aiAssistantState);
-    } catch (error) {
-      appendAILog(logBox, `${i18n.t('ai.stepError')} ${error.message || String(error)}`);
-      resultBox.textContent = error.message || String(error);
-    }
-  };
-
-  generateButton.onclick = async () => {
-    try {
-      resultBox.textContent = i18n.t('ai.generating');
-      resetLog();
-      appendAILog(logBox, i18n.t('ai.stepStart'));
-      aiAssistantState = await requestAIGraph(textarea.value.trim(), (message) => appendAILog(logBox, message));
-      buildAIResultView(resultBox, aiAssistantState);
-    } catch (error) {
-      appendAILog(logBox, `${i18n.t('ai.stepError')} ${error.message || String(error)}`);
-      resultBox.textContent = error.message || String(error);
-    }
-  };
+  extractButton.onclick = () => runAIAction(textarea, resultBox, logBox, requestAIInsights, applyAIInsightToCanvas);
+  answerButton.onclick = () => runAIAction(textarea, resultBox, logBox, requestAIAnswer);
+  generateButton.onclick = () => runAIAction(textarea, resultBox, logBox, requestAIGraph);
 
   applyButton.onclick = () => {
     try {
@@ -263,8 +280,8 @@ function showAIAssistant() {
   };
 
   closeButton.onclick = () => menu.remove();
-  actions.append(generateButton, patternButton, leverageButton, extractButton, applyButton, replaceButton, closeButton);
-  menu.append(title, textarea, actions, resultBox, logTitle, logBox);
+  actions.append(generateButton, patternButton, leverageButton, extractButton, answerButton, applyButton, replaceButton, closeButton);
+  menu.append(title, textarea, actions, resultBox, logSection);
   menu.addEventListener('click', (event) => event.stopPropagation());
   document.body.appendChild(menu);
 }

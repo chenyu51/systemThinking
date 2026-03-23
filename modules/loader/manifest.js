@@ -25,10 +25,12 @@ window.CANVAS_MODULE_MANIFEST = {
   ai: [
     '../modules/ai/config.js',
     '../modules/ai/graph.js',
+    '../modules/ai/render.js',
     '../modules/ai/assistant.js'
   ],
   panel: [
     '../modules/panel/actions.js',
+    '../modules/panel/graph-info.js',
     '../modules/panel/menus.js',
     '../modules/panel/index.js'
   ]

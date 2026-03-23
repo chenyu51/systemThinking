@@ -1,6 +1,7 @@
 Object.assign(Canvas.prototype, {
   updateSystemConceptPanel() {
     const group = document.getElementById('systemConceptGroup');
+    if (!group) return;
     const aiInfo = store.data.aiInfo;
     const concepts = aiInfo?.systemConcepts || {};
     const hasContent = ['feedbackLoops', 'stocks', 'flows', 'variables', 'delays', 'boundaries', 'archetypes']
