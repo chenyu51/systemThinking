@@ -139,7 +139,7 @@ function syncAIAssistantView() {
   (aiAssistantUI.logs.length ? aiAssistantUI.logs : [i18n.t('ai.processIdle')]).forEach((message) => logBox.appendChild(Object.assign(document.createElement('div'), {
     style: 'padding:6px 8px;border-bottom:1px solid #f0f0f0;line-height:1.5;', textContent: message
   })));
-  if (aiAssistantUI.result) buildAIResultView(resultBox, aiAssistantUI.result);
+  if (aiAssistantUI.result) renderAIResultView(resultBox, aiAssistantUI.result);
   else resultBox.textContent = aiAssistantUI.error || i18n.t('ai.empty');
 }
 
@@ -155,7 +155,7 @@ async function runAIAction(textarea, resultBox, logBox, requester, onSuccess) {
     aiAssistantState = await requester(aiAssistantUI.prompt, (message) => appendAILog(aiAssistantUI.logBox || logBox, message));
     aiAssistantUI.result = aiAssistantState;
     onSuccess?.(aiAssistantState);
-    buildAIResultView(resultBox, aiAssistantState);
+    renderAIResultView(resultBox, aiAssistantState);
   } catch (error) {
     aiAssistantUI.error = error.message || String(error);
     appendAILog(aiAssistantUI.logBox || logBox, `${i18n.t('ai.stepError')} ${aiAssistantUI.error}`);
@@ -164,7 +164,12 @@ async function runAIAction(textarea, resultBox, logBox, requester, onSuccess) {
 }
 
 function showAIAssistant() {
-  document.querySelector('.ai-assistant-menu')?.remove();
+  const existingMenu = document.querySelector('.ai-assistant-menu');
+  if (existingMenu) {
+    existingMenu.style.display = 'block';
+    return;
+  }
+  
   const menu = document.createElement('div');
   menu.className = 'ai-assistant-menu';
   menu.style.cssText = 'position:fixed;top:60px;right:0;bottom:30px;width:min(560px,calc(100vw - 24px));background:white;border-left:1px solid #e0e0e0;box-shadow:-12px 0 28px rgba(15,23,42,.12);z-index:2000;overflow:auto;padding:0;display:flex;flex-direction:column;';
@@ -271,7 +276,7 @@ function showAIAssistant() {
   applyButton.onclick = () => {
     try {
       applyAIGraphToCanvas(aiAssistantState);
-      menu.remove();
+      menu.style.display = 'none';
     } catch (error) {
       resultBox.textContent = error.message || String(error);
     }
@@ -285,13 +290,15 @@ function showAIAssistant() {
       window.canvas.selectedEdgeId = null;
       window.canvas.selectedTextId = null;
       applyAIGraphToCanvas(aiAssistantState);
-      menu.remove();
+      menu.style.display = 'none';
     } catch (error) {
       resultBox.textContent = error.message || String(error);
     }
   };
 
-  closeButtonHeader.onclick = () => menu.remove();
+  closeButtonHeader.onclick = () => {
+    menu.style.display = 'none';
+  };
   actions.append(generateButton, patternButton, leverageButton, extractButton, answerButton, applyButton, replaceButton);
   content.append(textarea, actions, resultBox, logSection);
   menu.append(header, content);
