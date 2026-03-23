@@ -11,23 +11,26 @@ function initializeEventListeners() {
   panelEventsInitialized = true;
   i18n.applyTranslations();
   document.getElementById('btnFile').textContent = `${i18n.currentLang === 'zh-CN' ? '文件' : 'File'} ▼`;
+  document.getElementById('btnView').textContent = `${i18n.currentLang === 'zh-CN' ? '查看' : 'View'} ▼`;
   document.getElementById('btnEdit').textContent = `${i18n.currentLang === 'zh-CN' ? '编辑' : 'Edit'} ▼`;
   document.getElementById('btnAI').textContent = i18n.t('toolbar.ai');
+  document.getElementById('btnGraphInfo').title = i18n.t('properties.graphInfo');
+  document.getElementById('btnGraphInfo').textContent = 'ⓘ';
   document.getElementById('btnSettings').textContent = i18n.t('toolbar.settings');
   document.getElementById('btnHideLeftPanel').title = i18n.currentLang === 'zh-CN' ? '隐藏左栏' : 'Hide left panel';
   document.getElementById('btnHideRightPanel').title = i18n.currentLang === 'zh-CN' ? '隐藏右栏' : 'Hide right panel';
   document.getElementById('btnShowLeftPanel').title = i18n.currentLang === 'zh-CN' ? '展开左栏' : 'Show left panel';
   document.getElementById('btnShowRightPanel').title = i18n.currentLang === 'zh-CN' ? '展开右栏' : 'Show right panel';
-  document.getElementById('btnGraphInfoFloating').title = i18n.t('properties.graphInfo');
   document.getElementById('btnFile').onclick = (event) => { event.stopPropagation(); showFileMenu(); };
+  document.getElementById('btnView').onclick = (event) => { event.stopPropagation(); showViewMenu(); };
   document.getElementById('btnEdit').onclick = (event) => { event.stopPropagation(); showEditMenu(); };
   document.getElementById('btnAI').onclick = (event) => { event.stopPropagation(); showAIAssistant(); };
+  document.getElementById('btnGraphInfo').onclick = (event) => { event.stopPropagation(); showGraphInfoMenu(); };
   document.getElementById('btnSettings').onclick = (event) => { event.stopPropagation(); openSettings(); };
   document.getElementById('btnHideLeftPanel').onclick = () => togglePanel('left');
   document.getElementById('btnHideRightPanel').onclick = () => togglePanel('right');
   document.getElementById('btnShowLeftPanel').onclick = () => togglePanel('left');
   document.getElementById('btnShowRightPanel').onclick = () => togglePanel('right');
-  document.getElementById('btnGraphInfoFloating').onclick = (event) => { event.stopPropagation(); showGraphInfoMenu(); };
   document.querySelectorAll('.tool-item[data-tool]').forEach((item) => {
     item.onclick = () => {
       const canvas = getCanvasInstance();
@@ -71,6 +74,7 @@ Object.assign(window, {
   relayoutCanvas,
   showSavedMenu,
   showFileMenu,
+  showViewMenu,
   showEditMenu,
   toggleMenu,
   undo,

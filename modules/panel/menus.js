@@ -1,5 +1,5 @@
-const POPUP_SELECTORS = ['.export-menu', '.saved-menu', '.settings-menu', '.archetype-menu', '.graph-info-menu', '.file-menu', '.edit-menu', '.canvas-context-menu'];
-const POPUP_TRIGGER_SELECTORS = ['#btnFile', '#btnEdit', '#btnSettings', '#btnAI', '#btnGraphInfoFloating'];
+const POPUP_SELECTORS = ['.export-menu', '.saved-menu', '.settings-menu', '.archetype-menu', '.graph-info-menu', '.file-menu', '.view-menu', '.edit-menu', '.canvas-context-menu'];
+const POPUP_TRIGGER_SELECTORS = ['#btnFile', '#btnView', '#btnEdit', '#btnSettings', '#btnAI', '#btnGraphInfo'];
 let popupCloseHandlerBound = false;
 
 function getCanvasInstance() {
@@ -27,11 +27,9 @@ function showFileMenu() {
   if (menu) return menu.remove();
   menu = buildPopup('file-menu', 'position:fixed;background:white;border:1px solid #e0e0e0;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.2);z-index:1000;width:220px;overflow:hidden;');
   [
-    { label: i18n.t('toolbar.templates'), action: showArchetypeMenu },
     { label: i18n.t('toolbar.new'), action: newCanvas },
     { label: i18n.t('toolbar.open'), action: openCanvas },
     { label: i18n.t('toolbar.save'), action: saveCanvas },
-    { label: i18n.t('toolbar.saved'), action: showSavedMenu },
     { label: i18n.t('toolbar.saveTemplate'), action: saveAsTemplate },
     { label: i18n.t('toolbar.export'), action: toggleMenu }
   ].forEach((option) => menu.appendChild(buildMenuItem(option.label, () => {
@@ -40,6 +38,21 @@ function showFileMenu() {
   })));
   document.body.appendChild(menu);
   anchorPopupToTrigger(menu, document.getElementById('btnFile'));
+}
+
+function showViewMenu() {
+  let menu = document.querySelector('.view-menu');
+  if (menu) return menu.remove();
+  menu = buildPopup('view-menu', 'position:fixed;background:white;border:1px solid #e0e0e0;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.2);z-index:1000;width:220px;overflow:hidden;');
+  [
+    { label: i18n.t('toolbar.templates'), action: showArchetypeMenu },
+    { label: i18n.t('toolbar.saved'), action: showSavedMenu }
+  ].forEach((option) => menu.appendChild(buildMenuItem(option.label, () => {
+    menu.remove();
+    option.action();
+  })));
+  document.body.appendChild(menu);
+  anchorPopupToTrigger(menu, document.getElementById('btnView'));
 }
 
 function showEditMenu() {

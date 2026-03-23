@@ -10,6 +10,7 @@
     .toolbar { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: white; border-bottom: 1px solid #e0e0e0; display: flex; align-items: center; padding: 0 20px; gap: 16px; z-index: 100; box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08); }
     .toolbar-title { flex: 1; font-weight: 600; font-size: 16px; }
     .toolbar-buttons { display: flex; gap: 8px; align-items: center; }
+    .toolbar-icon-button { width: 36px; height: 36px; padding: 0; justify-content: center; font-size: 16px; }
     button { padding: 8px 16px; border: none; border-radius: 6px; background: #f0f0f0; cursor: pointer; font-size: 13px; transition: all 0.2s ease; display: flex; align-items: center; gap: 6px; }
     button:hover { background: #e0e0e0; }
     button.active { background: #667eea; color: white; }
@@ -56,7 +57,7 @@
   <div class="toolbar">
     <div class="toolbar-title">📊 SystemCanvas</div>
     <div class="toolbar-buttons">
-      <button id="btnFile">文件 ▼</button><button id="btnEdit">编辑 ▼</button><button id="btnAI">AI 辅助</button><button id="btnSettings">⚙️ 设置</button>
+      <button id="btnFile">文件 ▼</button><button id="btnView">查看 ▼</button><button id="btnEdit">编辑 ▼</button><button id="btnAI">AI 辅助</button><button id="btnGraphInfo" class="toolbar-icon-button" type="button" title="图信息">ⓘ</button><button id="btnSettings">⚙️ 设置</button>
     </div>
   </div>
   <div class="layout">
@@ -80,7 +81,6 @@
       <button id="btnShowLeftPanel" class="canvas-side-toggle left is-hidden" type="button" title="展开左栏">▶</button>
       <svg id="canvas"></svg>
       <button id="btnShowRightPanel" class="canvas-side-toggle right is-hidden" type="button" title="展开右栏">◀</button>
-      <button id="btnGraphInfoFloating" class="canvas-floating-action" type="button" title="图信息">ⓘ</button>
     </div>
     <div class="properties-panel">
       <div class="panel-head"><button id="btnHideRightPanel" class="panel-toggle-icon" type="button" title="隐藏右栏">✕</button></div>
