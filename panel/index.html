@@ -202,6 +202,8 @@
             <button id="btnNew">+ 新建</button>
             <button id="btnOpen">打开</button>
             <button id="btnSave">💾 保存</button>
+            <button id="btnSaved">🗂️ 已保存</button>
+            <button id="btnSaveTemplate">⭐ 保存为模板</button>
             <button id="btnExport">导出 ▼</button>
             <button id="btnUndo">↶ 撤销</button>
             <button id="btnRedo">↷ 重做</button>
@@ -246,6 +248,12 @@
         </div>
 
         <div class="properties-panel">
+            <div class="property-group" id="templateInfoGroup" style="display: none;">
+                <div class="property-label" data-i18n="properties.templateSource">模板来源</div>
+                <div id="templateName" style="font-weight: 600; color: #333; margin-bottom: 6px;"></div>
+                <div id="templateDescription" style="font-size: 13px; line-height: 1.5; color: #666;"></div>
+            </div>
+
             <div class="property-group">
                 <div class="property-label" data-i18n="properties.selected">选中元素</div>
                 <div id="selectedInfo" data-i18n="selected.none">无</div>

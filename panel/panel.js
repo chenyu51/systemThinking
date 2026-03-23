@@ -2,12 +2,36 @@
  * 面板交互脚本 - 处理顶部工具栏和菜单
  */
 
+const POPUP_SELECTORS = [
+  '.export-menu',
+  '.saved-menu',
+  '.settings-menu',
+  '.archetype-menu',
+  '.canvas-context-menu'
+];
+
+const POPUP_TRIGGER_SELECTORS = [
+  '#btnExport',
+  '#btnSaved',
+  '#btnSettings',
+  '#btnTemplate'
+];
+
+let popupCloseHandlerBound = false;
+
+function closeAllPopups() {
+  POPUP_SELECTORS.forEach((selector) => {
+    document.querySelector(selector)?.remove();
+  });
+}
+
 /**
  * 新建画布
  */
 function newCanvas() {
   if (confirm(i18n.t('dialog.newCanvasConfirm'))) {
     store.clear();
+    store.data.name = '未命名画布';
     store.save();
     canvas.selectedNodeId = null;
     canvas.selectedEdgeId = null;
@@ -51,18 +75,124 @@ function openCanvas() {
  * 保存画布
  */
 async function saveCanvas() {
-  // 保存缩放和偏移
+  const defaultName = store.data.name || '未命名画布';
+  const name = window.prompt(i18n.t('dialog.saveNamePrompt'), defaultName);
+  if (!name) return;
+
+  store.data.name = name.trim() || defaultName;
   store.data.canvas.zoom = canvas.zoom;
   store.data.canvas.offsetX = canvas.offsetX;
   store.data.canvas.offsetY = canvas.offsetY;
 
   await store.save();
-  canvas.updateStatus(i18n.t('message.canvasSaved'));
+  await store.saveSnapshot(store.data.name);
+  canvas.updateStatus(i18n.t('message.snapshotSaved', { name: store.data.name }));
+}
 
-  // 3秒后清除状态消息
-  setTimeout(() => {
-    canvas.updateStatus(i18n.t('message.ready'));
-  }, 3000);
+async function saveAsTemplate() {
+  const defaultName = store.data.name || '未命名模板';
+  const name = window.prompt(i18n.t('dialog.templateNamePrompt'), defaultName);
+  if (!name) return;
+
+  store.data.canvas.zoom = canvas.zoom;
+  store.data.canvas.offsetX = canvas.offsetX;
+  store.data.canvas.offsetY = canvas.offsetY;
+  await store.save();
+  const template = await store.saveTemplate(name.trim() || defaultName);
+  canvas.updateStatus(i18n.t('message.templateSavedLocal', { name: template.name }));
+}
+
+async function showSavedMenu() {
+  let menu = document.querySelector('.saved-menu');
+  if (menu) {
+    menu.remove();
+    return;
+  }
+
+  const snapshots = await store.getSavedSnapshots();
+  menu = document.createElement('div');
+  menu.className = 'saved-menu';
+  menu.style.cssText = `
+    position: fixed;
+    top: 70px;
+    right: 180px;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    z-index: 1000;
+    width: 320px;
+    max-height: 420px;
+    overflow-y: auto;
+  `;
+
+  const title = document.createElement('div');
+  title.style.cssText = 'padding: 12px 16px; border-bottom: 1px solid #f0f0f0; font-weight: 600; color: #333;';
+  title.textContent = i18n.t('menu.savedCanvases');
+  menu.appendChild(title);
+
+  if (snapshots.length === 0) {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'padding: 16px; color: #999; font-size: 13px;';
+    empty.textContent = i18n.t('menu.emptySaved');
+    menu.appendChild(empty);
+  }
+
+  snapshots.forEach((snapshot) => {
+    const row = document.createElement('div');
+    row.style.cssText = `
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 12px;
+      border-bottom: 1px solid #f5f5f5;
+    `;
+
+    const loadButton = document.createElement('button');
+    loadButton.type = 'button';
+    loadButton.style.cssText = `
+      flex: 1;
+      background: transparent;
+      color: #333;
+      justify-content: flex-start;
+      padding: 8px 10px;
+    `;
+    loadButton.textContent = `${snapshot.name} · ${new Date(snapshot.updated).toLocaleString()}`;
+    loadButton.onclick = async () => {
+      const data = await store.loadSnapshot(snapshot.id);
+      if (!data) return;
+      await store.save();
+      canvas.selectedNodeId = null;
+      canvas.selectedEdgeId = null;
+      canvas.currentTool = store.data.canvas.currentTool || 'select';
+      canvas.syncToolSelection();
+      canvas.render();
+      canvas.updateProperties();
+      canvas.syncViewport();
+      canvas.updateStatus(i18n.t('message.snapshotLoaded', { name: snapshot.name }));
+      menu.remove();
+    };
+
+    const deleteButton = document.createElement('button');
+    deleteButton.type = 'button';
+    deleteButton.style.cssText = 'padding: 8px 10px; background: #fff2f0; color: #c0392b;';
+    deleteButton.textContent = i18n.t('menu.delete');
+    deleteButton.onclick = async (e) => {
+      e.stopPropagation();
+      if (!confirm(i18n.t('dialog.deleteSavedConfirm'))) return;
+      await store.deleteSnapshot(snapshot.id);
+      canvas.updateStatus(i18n.t('message.snapshotDeleted'));
+      menu.remove();
+      showSavedMenu();
+    };
+
+    row.appendChild(loadButton);
+    row.appendChild(deleteButton);
+    menu.appendChild(row);
+  });
+
+  menu.addEventListener('click', (e) => e.stopPropagation());
+  document.body.appendChild(menu);
 }
 
 /**
@@ -114,6 +244,7 @@ function toggleMenu(button) {
     menu.appendChild(item);
   });
 
+  menu.addEventListener('click', (e) => e.stopPropagation());
   document.body.appendChild(menu);
 }
 
@@ -274,6 +405,7 @@ function openSettings() {
     settings.appendChild(item);
   });
 
+  settings.addEventListener('click', (e) => e.stopPropagation());
   document.body.appendChild(settings);
 }
 
@@ -445,6 +577,10 @@ function loadArchetype(archetypeKey) {
 
   // 清空画布
   store.clear();
+  store.data.templateInfo = {
+    name: archetype.name,
+    description: archetype.description
+  };
 
   // 创建节点映射
   const nodeIdMap = {};
@@ -476,6 +612,9 @@ function loadArchetype(archetypeKey) {
   // 刷新画布
   canvas.selectedNodeId = null;
   canvas.selectedEdgeId = null;
+  canvas.currentTool = 'select';
+  canvas.syncToolSelection();
+  canvas.centerGraph();
   canvas.render();
   canvas.updateProperties();
   canvas.saveHistory();
@@ -486,12 +625,14 @@ function loadArchetype(archetypeKey) {
 /**
  * 打开模版选择器
  */
-function showArchetypeMenu() {
+async function showArchetypeMenu() {
   let menu = document.querySelector('.archetype-menu');
   if (menu) {
     menu.remove();
     return;
   }
+
+  const customTemplates = await store.getSavedTemplates();
 
   menu = document.createElement('div');
   menu.className = 'archetype-menu';
@@ -519,6 +660,67 @@ function showArchetypeMenu() {
   `;
   title.textContent = '📚 ' + i18n.t('toolbar.templates');
   menu.appendChild(title);
+
+  if (customTemplates.length > 0) {
+    const customTitle = document.createElement('div');
+    customTitle.style.cssText = 'padding: 10px 16px; font-size: 12px; color: #666; background: #fafafa; border-bottom: 1px solid #f0f0f0;';
+    customTitle.textContent = i18n.t('menu.customTemplates');
+    menu.appendChild(customTitle);
+
+    customTemplates.forEach((template) => {
+      const item = document.createElement('div');
+      item.style.cssText = `
+        padding: 12px 16px;
+        cursor: pointer;
+        border-bottom: 1px solid #f0f0f0;
+        transition: all 0.2s ease;
+      `;
+
+      const nameEl = document.createElement('div');
+      nameEl.style.cssText = 'font-weight: 500; color: #333; margin-bottom: 4px;';
+      nameEl.textContent = template.name;
+
+      const descEl = document.createElement('div');
+      descEl.style.cssText = 'font-size: 12px; color: #999; line-height: 1.4;';
+      descEl.textContent = new Date(template.updated).toLocaleString();
+
+      item.appendChild(nameEl);
+      item.appendChild(descEl);
+      item.onmouseover = () => item.style.background = '#f9f9f9';
+      item.onmouseout = () => item.style.background = 'white';
+      item.onclick = async () => {
+        const data = await store.loadTemplate(template.id);
+        if (!data) return;
+        store.data.templateInfo = {
+          name: template.name,
+          description: template.data?.templateInfo?.description || ''
+        };
+        await store.save();
+        canvas.selectedNodeId = null;
+        canvas.selectedEdgeId = null;
+        canvas.currentTool = 'select';
+        canvas.syncToolSelection();
+        canvas.centerGraph();
+        canvas.render();
+        canvas.updateProperties();
+        canvas.saveHistory();
+        canvas.updateStatus(i18n.t('message.templateLoadedLocal', { name: template.name }));
+        menu.remove();
+      };
+
+      menu.appendChild(item);
+    });
+  } else {
+    const empty = document.createElement('div');
+    empty.style.cssText = 'padding: 12px 16px; color: #999; font-size: 13px; border-bottom: 1px solid #f0f0f0;';
+    empty.textContent = i18n.t('menu.emptyTemplates');
+    menu.appendChild(empty);
+  }
+
+  const builtInTitle = document.createElement('div');
+  builtInTitle.style.cssText = 'padding: 10px 16px; font-size: 12px; color: #666; background: #fafafa; border-bottom: 1px solid #f0f0f0;';
+  builtInTitle.textContent = i18n.t('menu.builtInTemplates');
+  menu.appendChild(builtInTitle);
 
   // 添加每个基模
   Object.entries(ARCHETYPES).forEach(([key, archetype]) => {
@@ -551,6 +753,7 @@ function showArchetypeMenu() {
     menu.appendChild(item);
   });
 
+  menu.addEventListener('click', (e) => e.stopPropagation());
   document.body.appendChild(menu);
 }
 
@@ -558,6 +761,8 @@ function showArchetypeMenu() {
 window.newCanvas = newCanvas;
 window.openCanvas = openCanvas;
 window.saveCanvas = saveCanvas;
+window.saveAsTemplate = saveAsTemplate;
+window.showSavedMenu = showSavedMenu;
 window.toggleMenu = toggleMenu;
 window.undo = undo;
 window.redo = redo;
@@ -576,20 +781,45 @@ function initializeEventListeners() {
   document.getElementById('btnNew').textContent = i18n.t('toolbar.new');
   document.getElementById('btnOpen').textContent = i18n.t('toolbar.open');
   document.getElementById('btnSave').textContent = i18n.t('toolbar.save');
+  document.getElementById('btnSaved').textContent = i18n.t('toolbar.saved');
+  document.getElementById('btnSaveTemplate').textContent = i18n.t('toolbar.saveTemplate');
   document.getElementById('btnExport').textContent = i18n.t('toolbar.export') + ' ▼';
   document.getElementById('btnUndo').textContent = i18n.t('toolbar.undo');
   document.getElementById('btnRedo').textContent = i18n.t('toolbar.redo');
   document.getElementById('btnSettings').textContent = i18n.t('toolbar.settings');
   
   // 绑定按钮事件
-  document.getElementById('btnTemplate').onclick = showArchetypeMenu;
+  document.getElementById('btnTemplate').onclick = function(e) {
+    e.stopPropagation();
+    showArchetypeMenu();
+  };
   document.getElementById('btnNew').onclick = newCanvas;
   document.getElementById('btnOpen').onclick = openCanvas;
   document.getElementById('btnSave').onclick = saveCanvas;
-  document.getElementById('btnExport').onclick = function() {
+  document.getElementById('btnSaved').onclick = function(e) {
+    e.stopPropagation();
+    showSavedMenu();
+  };
+  document.getElementById('btnSaveTemplate').onclick = saveAsTemplate;
+  document.getElementById('btnExport').onclick = function(e) {
+    e.stopPropagation();
     toggleMenu(this);
   };
   document.getElementById('btnUndo').onclick = undo;
   document.getElementById('btnRedo').onclick = redo;
-  document.getElementById('btnSettings').onclick = openSettings;
+  document.getElementById('btnSettings').onclick = function(e) {
+    e.stopPropagation();
+    openSettings();
+  };
+
+  if (!popupCloseHandlerBound) {
+    document.addEventListener('click', (e) => {
+      const clickedPopup = e.target.closest(POPUP_SELECTORS.join(', '));
+      const clickedTrigger = e.target.closest(POPUP_TRIGGER_SELECTORS.join(', '));
+      if (!clickedPopup && !clickedTrigger) {
+        closeAllPopups();
+      }
+    });
+    popupCloseHandlerBound = true;
+  }
 }

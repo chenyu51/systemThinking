@@ -51,11 +51,11 @@ class CanvasEdge {
    * 获取SVG路径和箭头
    * @param {CanvasNode} sourceNode - 源节点
    * @param {CanvasNode} targetNode - 目标节点
-   * @param {number} edgeIndex - 当前边在同向边中的索引
-   * @param {number} sameDirectionCount - 同一方向的边数
-   * @param {number} totalBidirectional - 双向总边数（考虑反向边）
+   * @param {number} edgeIndex - 当前边在同一对节点中的索引
+   * @param {number} edgeCount - 同一对节点之间的总边数
+   * @param {number} curveDirection - 相对于节点对固定方向的曲线方向
    */
-  createSVGElement(sourceNode, targetNode, edgeIndex = 0, sameDirectionCount = 1, totalBidirectional = 1) {
+  createSVGElement(sourceNode, targetNode, edgeIndex = 0, edgeCount = 1, curveDirection = 1) {
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     g.setAttribute('class', 'edge');
     g.setAttribute('data-id', this.id);
@@ -86,22 +86,16 @@ class CanvasEdge {
 
     // 如果多条边，使用曲线并根据索引偏移
     let pathData;
-    if (sameDirectionCount > 1) {
+    if (edgeCount > 1) {
       // 计算曲线控制点的偏移
       // 偏移方向垂直于连线方向
       const perpX = -Math.sin(angle);
       const perpY = Math.cos(angle);
       
-      // 根据索引计算偏移距离（中间的线走直线，两侧的弧线半径逐渐增大）
-      let offset = 0;
-      if (sameDirectionCount === 2) {
-        offset = (edgeIndex === 0 ? -1 : 1) * (dist * 0.15);
-      } else if (sameDirectionCount === 3) {
-        offset = (edgeIndex - 1) * (dist * 0.15);
-      } else {
-        const center = (sameDirectionCount - 1) / 2;
-        offset = (edgeIndex - center) * (dist * 0.12);
-      }
+      // 同一对节点的多条边均匀分布到中线两侧
+      const center = (edgeCount - 1) / 2;
+      const offsetStep = edgeCount === 2 ? dist * 0.18 : dist * 0.12;
+      const offset = (edgeIndex - center) * offsetStep * curveDirection;
       
       // 计算控制点
       const midX = (startX + endX) / 2;
@@ -133,22 +127,16 @@ class CanvasEdge {
       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       
       let labelX, labelY;
-      if (sameDirectionCount > 1) {
+      if (edgeCount > 1) {
         // 对于曲线，标签位置放在控制点附近
         const perpX = -Math.sin(angle);
         const perpY = Math.cos(angle);
         const midX = (startX + endX) / 2;
         const midY = (startY + endY) / 2;
         
-        let offset = 0;
-        if (sameDirectionCount === 2) {
-          offset = (edgeIndex === 0 ? -1 : 1) * (dist * 0.15);
-        } else if (sameDirectionCount === 3) {
-          offset = (edgeIndex - 1) * (dist * 0.15);
-        } else {
-          const center = (sameDirectionCount - 1) / 2;
-          offset = (edgeIndex - center) * (dist * 0.12);
-        }
+        const center = (edgeCount - 1) / 2;
+        const offsetStep = edgeCount === 2 ? dist * 0.18 : dist * 0.12;
+        const offset = (edgeIndex - center) * offsetStep * curveDirection;
         
         labelX = midX + perpX * offset * 1.2;
         labelY = midY + perpY * offset * 1.2 - 8;

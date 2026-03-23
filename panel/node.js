@@ -44,7 +44,7 @@ class CanvasNode {
   /**
    * 获取SVG元素
    */
-  createSVGElement() {
+  createSVGElement(options = {}) {
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     g.setAttribute('class', 'node');
     g.setAttribute('data-id', this.id);
@@ -116,6 +116,10 @@ class CanvasNode {
       g.appendChild(shapeElement);
     }
 
+    if (options.showPorts) {
+      this.createLinkPorts().forEach((port) => g.appendChild(port));
+    }
+
     g.appendChild(text);
 
     // 设置位置
@@ -128,5 +132,40 @@ class CanvasNode {
     });
 
     return g;
+  }
+
+  getPortPosition(side) {
+    const positions = {
+      top: { x: this.x, y: this.y - this.height / 2 },
+      right: { x: this.x + this.width / 2, y: this.y },
+      bottom: { x: this.x, y: this.y + this.height / 2 },
+      left: { x: this.x - this.width / 2, y: this.y }
+    };
+    return positions[side] || positions.right;
+  }
+
+  createLinkPorts() {
+    const portStyle = {
+      r: 5,
+      fill: '#ffffff',
+      stroke: '#4A90E2',
+      strokeWidth: '2'
+    };
+
+    return ['top', 'right', 'bottom', 'left'].map((side) => {
+      const position = this.getPortPosition(side);
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('class', 'link-port');
+      circle.setAttribute('data-node-id', this.id);
+      circle.setAttribute('data-side', side);
+      circle.setAttribute('cx', position.x - (this.x - this.width / 2));
+      circle.setAttribute('cy', position.y - (this.y - this.height / 2));
+      circle.setAttribute('r', portStyle.r);
+      circle.setAttribute('fill', portStyle.fill);
+      circle.setAttribute('stroke', portStyle.stroke);
+      circle.setAttribute('stroke-width', portStyle.strokeWidth);
+      circle.style.cursor = 'crosshair';
+      return circle;
+    });
   }
 }

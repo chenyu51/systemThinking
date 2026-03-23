@@ -4,9 +4,6 @@
 
 class I18n {
   constructor() {
-    // 获取系统语言或使用保存的语言设置
-    this.currentLang = this.getSavedLanguage() || this.getSystemLanguage();
-    
     this.messages = {
       'zh-CN': {
         // 工具栏
@@ -14,6 +11,8 @@ class I18n {
         'toolbar.new': '➕ 新建',
         'toolbar.open': '📂 打开',
         'toolbar.save': '💾 保存',
+        'toolbar.saved': '🗂️ 已保存',
+        'toolbar.saveTemplate': '⭐ 保存为模板',
         'toolbar.export': '📤 导出',
         'toolbar.undo': '↶ 撤销',
         'toolbar.redo': '↷ 重做',
@@ -21,6 +20,13 @@ class I18n {
         'menu.exportPng': '导出为 PNG',
         'menu.exportSvg': '导出为 SVG',
         'menu.exportJson': '导出为 JSON',
+        'menu.clearCanvas': '清空画布',
+        'menu.delete': '删除',
+        'menu.builtInTemplates': '内置模版',
+        'menu.customTemplates': '我的模板',
+        'menu.savedCanvases': '已保存列表',
+        'menu.emptySaved': '暂无保存内容',
+        'menu.emptyTemplates': '暂无自定义模板',
 
         // 侧边栏
         'sidebar.tools': '工具',
@@ -50,6 +56,10 @@ class I18n {
         'dialog.openError': '文件格式错误，无法打开',
         'dialog.templateMissing': '模版不存在',
         'dialog.templateReplaceConfirm': '当前画布将清空，确定要加载模版吗？',
+        'dialog.clearCanvasConfirm': '确定要清空画布吗？此操作会删除所有节点和连线。',
+        'dialog.saveNamePrompt': '请输入保存名称',
+        'dialog.templateNamePrompt': '请输入模板名称',
+        'dialog.deleteSavedConfirm': '确定要删除这个已保存项吗？',
 
         // 模版
         'template.limitsToGrowth': '成长极限',
@@ -87,6 +97,12 @@ class I18n {
         'message.undone': '已撤销',
         'message.redone': '已重做',
         'message.templateLoaded': '已加载模版: {name}',
+        'message.canvasCleared': '画布已清空',
+        'message.snapshotSaved': '已保存到本地: {name}',
+        'message.snapshotLoaded': '已加载: {name}',
+        'message.snapshotDeleted': '已删除保存项',
+        'message.templateSavedLocal': '模板已保存: {name}',
+        'message.templateLoadedLocal': '已加载模板: {name}',
         'status.nodes': '节点: {count}',
         'status.edges': '连线: {count}',
         'status.zoom': '缩放: {percent}%',
@@ -94,6 +110,7 @@ class I18n {
         'selected.node': '节点: {label}',
         'selected.edge': '连线',
         'properties.selected': '选中元素',
+        'properties.templateSource': '模板来源',
         'properties.nodeLabel': '节点标签',
         'properties.nodeLabelPlaceholder': '输入节点名称',
         'properties.color': '颜色',
@@ -102,6 +119,7 @@ class I18n {
         'properties.edgeLabel': '标签',
         'properties.edgeLabelPlaceholder': '输入连线标签',
         'properties.edgeDelay': '有延迟 (//)',
+        'template.noDescription': '暂无模板说明',
         'shape.rectangle': '矩形',
         'shape.circle': '圆形',
         'shape.diamond': '菱形',
@@ -116,6 +134,8 @@ class I18n {
         'toolbar.new': '➕ New',
         'toolbar.open': '📂 Open',
         'toolbar.save': '💾 Save',
+        'toolbar.saved': '🗂️ Saved',
+        'toolbar.saveTemplate': '⭐ Save as Template',
         'toolbar.export': '📤 Export',
         'toolbar.undo': '↶ Undo',
         'toolbar.redo': '↷ Redo',
@@ -123,6 +143,13 @@ class I18n {
         'menu.exportPng': 'Export as PNG',
         'menu.exportSvg': 'Export as SVG',
         'menu.exportJson': 'Export as JSON',
+        'menu.clearCanvas': 'Clear Canvas',
+        'menu.delete': 'Delete',
+        'menu.builtInTemplates': 'Built-in Templates',
+        'menu.customTemplates': 'My Templates',
+        'menu.savedCanvases': 'Saved Canvases',
+        'menu.emptySaved': 'No saved canvases yet',
+        'menu.emptyTemplates': 'No custom templates yet',
 
         // Sidebar
         'sidebar.tools': 'Tools',
@@ -152,6 +179,10 @@ class I18n {
         'dialog.openError': 'Invalid file format, unable to open',
         'dialog.templateMissing': 'Template does not exist',
         'dialog.templateReplaceConfirm': 'The current canvas will be cleared. Continue loading the template?',
+        'dialog.clearCanvasConfirm': 'Clear the canvas? This will remove all nodes and edges.',
+        'dialog.saveNamePrompt': 'Enter a name for this save',
+        'dialog.templateNamePrompt': 'Enter a template name',
+        'dialog.deleteSavedConfirm': 'Delete this saved item?',
 
         // Templates
         'template.limitsToGrowth': 'Limits to Growth',
@@ -189,6 +220,12 @@ class I18n {
         'message.undone': 'Undone',
         'message.redone': 'Redone',
         'message.templateLoaded': 'Template loaded: {name}',
+        'message.canvasCleared': 'Canvas cleared',
+        'message.snapshotSaved': 'Saved locally: {name}',
+        'message.snapshotLoaded': 'Loaded: {name}',
+        'message.snapshotDeleted': 'Saved item deleted',
+        'message.templateSavedLocal': 'Template saved: {name}',
+        'message.templateLoadedLocal': 'Template loaded: {name}',
         'status.nodes': 'Nodes: {count}',
         'status.edges': 'Edges: {count}',
         'status.zoom': 'Zoom: {percent}%',
@@ -196,6 +233,7 @@ class I18n {
         'selected.node': 'Node: {label}',
         'selected.edge': 'Edge',
         'properties.selected': 'Selected Item',
+        'properties.templateSource': 'Template Source',
         'properties.nodeLabel': 'Node Label',
         'properties.nodeLabelPlaceholder': 'Enter node name',
         'properties.color': 'Color',
@@ -204,6 +242,7 @@ class I18n {
         'properties.edgeLabel': 'Label',
         'properties.edgeLabelPlaceholder': 'Enter edge label',
         'properties.edgeDelay': 'Has Delay (//)',
+        'template.noDescription': 'No template description',
         'shape.rectangle': 'Rectangle',
         'shape.circle': 'Circle',
         'shape.diamond': 'Diamond',
@@ -213,6 +252,9 @@ class I18n {
         'app.title': 'SystemCanvas - Main Canvas'
       }
     };
+
+    // 获取系统语言或使用保存的语言设置
+    this.currentLang = this.getSavedLanguage() || this.getSystemLanguage();
   }
 
   /**

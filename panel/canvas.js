@@ -4,12 +4,15 @@
 
 class Canvas {
   constructor() {
+    this.baseViewWidth = 1600;
+    this.baseViewHeight = 900;
     this.svgElement = document.getElementById('canvas');
     this.currentTool = 'select';
     this.selectedNodeId = null;
     this.selectedEdgeId = null;
     this.isDrawingEdge = false;
     this.edgeStartNode = null;
+    this.edgeHoverTargetId = null;
     this.tempLine = null;
     this.zoom = 1;
     this.offsetX = 0;
@@ -23,7 +26,6 @@ class Canvas {
     this.canvasDragStartY = 0;
     this.canvasDragStartOffsetX = 0;
     this.canvasDragStartOffsetY = 0;
-    this.spaceKeyPressed = false;
 
     this.init();
   }
@@ -34,7 +36,7 @@ class Canvas {
   async init() {
     // 设置SVG属性
     this.svgElement.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
-    this.svgElement.setAttribute('viewBox', '0 0 1600 900');
+    this.svgElement.setAttribute('viewBox', `0 0 ${this.baseViewWidth} ${this.baseViewHeight}`);
 
     // 添加箭头定义
     this.svgElement.appendChild(CanvasEdge.createArrowMarkerDefs());
@@ -54,6 +56,7 @@ class Canvas {
     this.syncToolSelection();
     i18n.applyTranslations();
     this.updateProperties();
+    this.updateCanvasCursor();
 
     // 绑定事件
     this.bindEvents();
@@ -69,35 +72,67 @@ class Canvas {
     // 工具选择
     document.querySelectorAll('.tool-item[data-tool]').forEach(item => {
       item.addEventListener('click', (e) => {
+        this.cancelEdgeDrawing();
         this.currentTool = item.dataset.tool;
         this.selectedNodeId = null;
         this.selectedEdgeId = null;
         this.syncToolSelection();
         this.render();
         this.updateProperties();
+        this.updateCanvasCursor();
         this.persistCanvasState();
       });
     });
 
     // 画布点击
     this.svgElement.addEventListener('click', (e) => {
+      this.hideContextMenu();
+
       if (e.target === this.svgElement && this.currentTool === 'node') {
-        const rect = this.svgElement.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / this.zoom + this.offsetX;
-        const y = (e.clientY - rect.top) / this.zoom + this.offsetY;
+        const { x, y } = this.screenToWorld(e.clientX, e.clientY);
         this.addNode(x, y);
+        return;
+      }
+
+      if (e.target === this.svgElement) {
+        this.selectedNodeId = null;
+        this.selectedEdgeId = null;
+        this.render();
+        this.updateProperties();
       }
     });
 
+    this.svgElement.addEventListener('contextmenu', (e) => {
+      e.preventDefault();
+      this.showContextMenu(e.clientX, e.clientY);
+    });
+
+    this.svgElement.addEventListener('wheel', (e) => {
+      e.preventDefault();
+
+      const rect = this.svgElement.getBoundingClientRect();
+      const mouseX = e.clientX - rect.left;
+      const mouseY = e.clientY - rect.top;
+      const { x: worldX, y: worldY } = this.screenToWorld(e.clientX, e.clientY);
+
+      const zoomDelta = e.deltaY < 0 ? 1.1 : 0.9;
+      const nextZoom = Math.min(3, Math.max(0.2, this.zoom * zoomDelta));
+
+      if (nextZoom === this.zoom) {
+        return;
+      }
+
+      this.zoom = nextZoom;
+      const viewWidth = this.baseViewWidth / this.zoom;
+      const viewHeight = this.baseViewHeight / this.zoom;
+      this.offsetX = worldX - (mouseX / rect.width) * viewWidth;
+      this.offsetY = worldY - (mouseY / rect.height) * viewHeight;
+      this.syncViewport();
+      this.persistCanvasState();
+    }, { passive: false });
+
     // 键盘快捷键
     document.addEventListener('keydown', (e) => {
-      // 空格键 - 用于画布拖拽
-      if (e.key === ' ' || e.code === 'Space') {
-        this.spaceKeyPressed = true;
-        this.svgElement.style.cursor = 'grab';
-        e.preventDefault();
-      }
-      
       if (e.key === 'Delete' || e.key === 'Backspace') {
         if (this.selectedNodeId) {
           this.deleteNode(this.selectedNodeId);
@@ -122,19 +157,12 @@ class Canvas {
       }
     });
 
-    document.addEventListener('keyup', (e) => {
-      // 释放空格键
-      if (e.key === ' ' || e.code === 'Space') {
-        this.spaceKeyPressed = false;
-        this.isCanvasDragging = false;
-        this.svgElement.style.cursor = 'default';
-      }
-    });
-
     // 拖拽支持
     this.svgElement.addEventListener('mousedown', (e) => {
-      // 空格+鼠标拖拽画布
-      if (this.spaceKeyPressed && e.target === this.svgElement) {
+      const clickedCanvasElement = e.target.closest('.node, .edge');
+      const canPanCanvas = this.currentTool !== 'node' && !clickedCanvasElement;
+
+      if (canPanCanvas) {
         this.isCanvasDragging = true;
         this.canvasDragStartX = e.clientX;
         this.canvasDragStartY = e.clientY;
@@ -148,22 +176,20 @@ class Canvas {
     this.svgElement.addEventListener('mousemove', (e) => {
       // 画布拖拽
       if (this.isCanvasDragging) {
-        const dx = (e.clientX - this.canvasDragStartX) / this.zoom;
-        const dy = (e.clientY - this.canvasDragStartY) / this.zoom;
+        const rect = this.svgElement.getBoundingClientRect();
+        const viewWidth = this.baseViewWidth / this.zoom;
+        const viewHeight = this.baseViewHeight / this.zoom;
+        const dx = ((e.clientX - this.canvasDragStartX) / rect.width) * viewWidth;
+        const dy = ((e.clientY - this.canvasDragStartY) / rect.height) * viewHeight;
         
         this.offsetX = this.canvasDragStartOffsetX - dx;
         this.offsetY = this.canvasDragStartOffsetY - dy;
-        
-        // 实时更新 SVG viewBox 以移动画面
-        const viewBox = [-this.offsetX * this.zoom, -this.offsetY * this.zoom, 1600, 900];
-        this.svgElement.setAttribute('viewBox', viewBox.join(' '));
+        this.syncViewport();
         return;
       }
       
       if (this.isDrawingEdge && this.edgeStartNode) {
-        const rect = this.svgElement.getBoundingClientRect();
-        const x = (e.clientX - rect.left) / this.zoom + this.offsetX;
-        const y = (e.clientY - rect.top) / this.zoom + this.offsetY;
+        const { x, y } = this.screenToWorld(e.clientX, e.clientY);
 
         // 更新临时线
         if (!this.tempLine) {
@@ -181,17 +207,28 @@ class Canvas {
       }
     });
 
-    this.svgElement.addEventListener('mouseup', (e) => {
+    document.addEventListener('mouseup', () => {
       if (this.isCanvasDragging) {
         this.isCanvasDragging = false;
-        this.svgElement.style.cursor = this.spaceKeyPressed ? 'grab' : 'default';
+        this.updateCanvasCursor();
         this.persistCanvasState();
       }
       
-      if (this.isDrawingEdge && this.tempLine) {
-        this.isDrawingEdge = false;
-        this.tempLine.remove();
-        this.tempLine = null;
+      if (this.isDrawingEdge) {
+        if (this.edgeHoverTargetId && this.edgeStartNode?.id !== this.edgeHoverTargetId) {
+          this.addEdge(this.edgeStartNode.id, this.edgeHoverTargetId);
+        }
+        this.cancelEdgeDrawing();
+      }
+    });
+
+    document.addEventListener('click', () => {
+      this.hideContextMenu();
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        this.hideContextMenu();
       }
     });
   }
@@ -232,6 +269,7 @@ class Canvas {
   selectNode(nodeId) {
     this.selectedNodeId = nodeId;
     this.selectedEdgeId = null;
+    this.render();
     this.updateProperties();
   }
 
@@ -272,31 +310,64 @@ class Canvas {
   selectEdge(edgeId) {
     this.selectedEdgeId = edgeId;
     this.selectedNodeId = null;
+    this.render();
     this.updateProperties();
+  }
+
+  clearCanvas() {
+    if (!confirm(i18n.t('dialog.clearCanvasConfirm'))) {
+      return;
+    }
+
+    store.clear();
+    this.selectedNodeId = null;
+    this.selectedEdgeId = null;
+    this.render();
+    this.updateProperties();
+    this.saveHistory();
+    this.persistCanvasState();
+    this.updateStatus(i18n.t('message.canvasCleared'));
   }
 
   /**
    * 开始绘制连线
    */
-  startDrawingEdge(nodeId) {
+  startDrawingEdge(nodeId, side = 'right') {
     if (this.currentTool !== 'edge') return;
     this.isDrawingEdge = true;
-    this.edgeStartNode = store.getNodes().find(n => n.id === nodeId);
+    this.edgeHoverTargetId = null;
+    const node = store.getNodes().find(n => n.id === nodeId);
+    if (!node) return;
+    const position = new CanvasNode(node).getPortPosition(side);
+    this.edgeStartNode = {
+      id: nodeId,
+      side,
+      x: position.x,
+      y: position.y
+    };
   }
 
   /**
    * 完成绘制连线
    */
   endDrawingEdge(targetId) {
-    if (!this.isDrawingEdge) return;
-    
+    if (!this.isDrawingEdge || !this.edgeStartNode) return;
     const sourceId = this.edgeStartNode.id;
     if (sourceId !== targetId) {
       this.addEdge(sourceId, targetId);
     }
+    this.cancelEdgeDrawing();
+  }
 
+  cancelEdgeDrawing() {
     this.isDrawingEdge = false;
     this.edgeStartNode = null;
+    this.edgeHoverTargetId = null;
+    if (this.tempLine) {
+      this.tempLine.remove();
+      this.tempLine = null;
+    }
+    this.render();
   }
 
   /**
@@ -315,21 +386,15 @@ class Canvas {
     const edges = store.getEdges();
     const nodes = store.getNodes();
 
-    // 计算每条边的多重度（同源目标的边数和索引）
+    // 计算每对节点之间的边集合，用于为多条边分配不同弧度
     const edgeMultiplicity = new Map();
     edges.forEach((edgeData, idx) => {
-      const key = `${edgeData.source}-${edgeData.target}`;
-      const reverseKey = `${edgeData.target}-${edgeData.source}`;
+      const key = [edgeData.source, edgeData.target].sort().join('::');
       
       if (!edgeMultiplicity.has(key)) {
         edgeMultiplicity.set(key, []);
       }
       edgeMultiplicity.get(key).push(idx);
-      
-      // 同时记录反向连线
-      if (!edgeMultiplicity.has(reverseKey)) {
-        edgeMultiplicity.set(reverseKey, []);
-      }
     });
 
     edges.forEach((edgeData, idx) => {
@@ -341,15 +406,13 @@ class Canvas {
         const sn = new CanvasNode(sourceNode);
         const tn = new CanvasNode(targetNode);
         
-        // 获取边的多重度信息
-        const key = `${edgeData.source}-${edgeData.target}`;
-        const reverseKey = `${edgeData.target}-${edgeData.source}`;
-        const sameDirectionEdges = edgeMultiplicity.get(key) || [];
-        const reverseEdges = edgeMultiplicity.get(reverseKey) || [];
-        const edgeIndex = sameDirectionEdges.indexOf(idx);
-        const totalBidirectional = Math.max(sameDirectionEdges.length, 1) + Math.max(reverseEdges.length, 0);
+        const key = [edgeData.source, edgeData.target].sort().join('::');
+        const pairEdges = edgeMultiplicity.get(key) || [];
+        const edgeIndex = pairEdges.indexOf(idx);
+        const pairNodeIds = [edgeData.source, edgeData.target].sort();
+        const curveDirection = edgeData.source === pairNodeIds[0] ? 1 : -1;
         
-        const svgEdge = edge.createSVGElement(sn, tn, edgeIndex, sameDirectionEdges.length, totalBidirectional);
+        const svgEdge = edge.createSVGElement(sn, tn, edgeIndex, pairEdges.length, curveDirection);
 
         if (this.selectedEdgeId === edgeData.id) {
           svgEdge.querySelector('line, path').setAttribute('stroke-width', '4');
@@ -368,7 +431,9 @@ class Canvas {
     // 绘制节点
     nodes.forEach(nodeData => {
       const node = new CanvasNode(nodeData);
-      const svgNode = node.createSVGElement();
+      const svgNode = node.createSVGElement({
+        showPorts: this.currentTool === 'edge' || this.isDrawingEdge
+      });
 
       if (this.selectedNodeId === nodeData.id) {
         svgNode.querySelector('.node-shape').setAttribute('stroke', '#FFD700');
@@ -388,21 +453,25 @@ class Canvas {
 
       // 如果当前工具是连线工具，添加连线绘制事件
       if (this.currentTool === 'edge') {
-        svgNode.addEventListener('mousedown', (e) => {
-          e.stopPropagation();
-          this.startDrawingEdge(nodeData.id);
-        });
         svgNode.addEventListener('mouseenter', (e) => {
           if (this.isDrawingEdge && this.edgeStartNode?.id !== nodeData.id) {
+            this.edgeHoverTargetId = nodeData.id;
             svgNode.style.cursor = 'crosshair';
           }
         });
-        svgNode.addEventListener('mouseup', (e) => {
-          if (this.isDrawingEdge) {
-            this.endDrawingEdge(nodeData.id);
+        svgNode.addEventListener('mouseleave', () => {
+          if (this.edgeHoverTargetId === nodeData.id) {
+            this.edgeHoverTargetId = null;
           }
         });
       }
+
+      svgNode.querySelectorAll('.link-port').forEach((port) => {
+        port.addEventListener('mousedown', (e) => {
+          e.stopPropagation();
+          this.startDrawingEdge(nodeData.id, port.dataset.side);
+        });
+      });
 
       this.svgElement.appendChild(svgNode);
     });
@@ -452,7 +521,7 @@ class Canvas {
     let startX, startY;
 
     element.addEventListener('mousedown', (e) => {
-      if (this.currentTool === 'select' || this.currentTool === 'edge') {
+      if (this.currentTool === 'select') {
         // 选中节点（用于删除和属性修改）
         this.selectNode(nodeId);
         isDragging = true;
@@ -544,9 +613,22 @@ class Canvas {
    * 更新属性面板
    */
   updateProperties() {
+    const templateInfoGroup = document.getElementById('templateInfoGroup');
+    const templateName = document.getElementById('templateName');
+    const templateDescription = document.getElementById('templateDescription');
     const selectedInfo = document.getElementById('selectedInfo');
     const nodeProperties = document.getElementById('nodeProperties');
     const edgeProperties = document.getElementById('edgeProperties');
+
+    if (store.data.templateInfo?.name) {
+      templateInfoGroup.style.display = 'block';
+      templateName.textContent = store.data.templateInfo.name;
+      templateDescription.textContent = store.data.templateInfo.description || i18n.t('template.noDescription');
+    } else {
+      templateInfoGroup.style.display = 'none';
+      templateName.textContent = '';
+      templateDescription.textContent = '';
+    }
 
     nodeProperties.style.display = 'none';
     edgeProperties.style.display = 'none';
@@ -632,11 +714,139 @@ class Canvas {
   }
 
   syncViewport() {
-    const viewBox = [-this.offsetX * this.zoom, -this.offsetY * this.zoom, 1600, 900];
+    const viewBox = [
+      this.offsetX,
+      this.offsetY,
+      this.baseViewWidth / this.zoom,
+      this.baseViewHeight / this.zoom
+    ];
     this.svgElement.setAttribute('viewBox', viewBox.join(' '));
     document.getElementById('zoom').textContent = i18n.t('status.zoom', {
       percent: Math.round(this.zoom * 100)
     });
+  }
+
+  resetView() {
+    this.zoom = 1;
+    this.offsetX = 0;
+    this.offsetY = 0;
+    this.syncViewport();
+  }
+
+  centerGraph(padding = 80) {
+    const nodes = store.getNodes();
+    if (!nodes.length) {
+      this.resetView();
+      return;
+    }
+
+    this.zoom = 1;
+
+    let minX = Infinity;
+    let minY = Infinity;
+    let maxX = -Infinity;
+    let maxY = -Infinity;
+
+    nodes.forEach((nodeData) => {
+      const node = new CanvasNode(nodeData);
+      minX = Math.min(minX, node.x - node.width / 2);
+      minY = Math.min(minY, node.y - node.height / 2);
+      maxX = Math.max(maxX, node.x + node.width / 2);
+      maxY = Math.max(maxY, node.y + node.height / 2);
+    });
+
+    const graphWidth = maxX - minX;
+    const graphHeight = maxY - minY;
+    const targetCenterX = this.baseViewWidth / 2;
+    const targetCenterY = this.baseViewHeight / 2;
+    const graphCenterX = minX + graphWidth / 2;
+    const graphCenterY = minY + graphHeight / 2;
+
+    this.offsetX = graphCenterX - targetCenterX;
+    this.offsetY = graphCenterY - targetCenterY;
+
+    if (graphWidth + padding * 2 > this.baseViewWidth || graphHeight + padding * 2 > this.baseViewHeight) {
+      const zoomX = this.baseViewWidth / (graphWidth + padding * 2);
+      const zoomY = this.baseViewHeight / (graphHeight + padding * 2);
+      this.zoom = Math.min(1, zoomX, zoomY);
+      const viewWidth = this.baseViewWidth / this.zoom;
+      const viewHeight = this.baseViewHeight / this.zoom;
+      this.offsetX = graphCenterX - viewWidth / 2;
+      this.offsetY = graphCenterY - viewHeight / 2;
+    }
+
+    this.syncViewport();
+  }
+
+  screenToWorld(clientX, clientY) {
+    const rect = this.svgElement.getBoundingClientRect();
+    const viewWidth = this.baseViewWidth / this.zoom;
+    const viewHeight = this.baseViewHeight / this.zoom;
+    const relativeX = clientX - rect.left;
+    const relativeY = clientY - rect.top;
+
+    return {
+      x: this.offsetX + (relativeX / rect.width) * viewWidth,
+      y: this.offsetY + (relativeY / rect.height) * viewHeight
+    };
+  }
+
+  updateCanvasCursor() {
+    this.svgElement.style.cursor = this.isCanvasDragging ? 'grabbing' : 'grab';
+  }
+
+  showContextMenu(x, y) {
+    this.hideContextMenu();
+
+    const menu = document.createElement('div');
+    menu.className = 'canvas-context-menu';
+    menu.style.cssText = `
+      position: fixed;
+      top: ${y}px;
+      left: ${x}px;
+      background: white;
+      border: 1px solid #e0e0e0;
+      border-radius: 8px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+      z-index: 2000;
+      min-width: 160px;
+      padding: 6px 0;
+    `;
+
+    const clearItem = document.createElement('button');
+    clearItem.type = 'button';
+    clearItem.style.cssText = `
+      display: block;
+      width: 100%;
+      border: none;
+      background: transparent;
+      text-align: left;
+      padding: 10px 14px;
+      font-size: 13px;
+      color: #c0392b;
+      cursor: pointer;
+      border-radius: 0;
+    `;
+    clearItem.textContent = i18n.t('menu.clearCanvas');
+    clearItem.onmouseover = () => {
+      clearItem.style.background = '#fff2f0';
+    };
+    clearItem.onmouseout = () => {
+      clearItem.style.background = 'transparent';
+    };
+    clearItem.onclick = (e) => {
+      e.stopPropagation();
+      this.hideContextMenu();
+      this.clearCanvas();
+    };
+
+    menu.appendChild(clearItem);
+    menu.addEventListener('click', (e) => e.stopPropagation());
+    document.body.appendChild(menu);
+  }
+
+  hideContextMenu() {
+    document.querySelector('.canvas-context-menu')?.remove();
   }
 
   persistCanvasState() {

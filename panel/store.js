@@ -8,6 +8,7 @@ class CanvasStore {
       version: '1.0',
       id: this.generateId(),
       name: '未命名画布',
+      templateInfo: null,
       created: new Date().toISOString(),
       updated: new Date().toISOString(),
       canvas: {
@@ -53,6 +54,92 @@ class CanvasStore {
         resolve(this.data);
       });
     });
+  }
+
+  cloneData(data = this.data) {
+    return JSON.parse(JSON.stringify(data));
+  }
+
+  async getCollection(key) {
+    return new Promise((resolve) => {
+      chrome.storage.local.get([key], (result) => {
+        resolve(Array.isArray(result[key]) ? result[key] : []);
+      });
+    });
+  }
+
+  async setCollection(key, items) {
+    return new Promise((resolve) => {
+      chrome.storage.local.set({ [key]: items }, () => resolve(items));
+    });
+  }
+
+  async saveSnapshot(name) {
+    const snapshots = await this.getCollection('savedCanvases');
+    const snapshot = {
+      id: this.generateId(),
+      name,
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+      data: this.cloneData()
+    };
+    snapshots.unshift(snapshot);
+    await this.setCollection('savedCanvases', snapshots);
+    return snapshot;
+  }
+
+  async getSavedSnapshots() {
+    return this.getCollection('savedCanvases');
+  }
+
+  async loadSnapshot(snapshotId) {
+    const snapshots = await this.getSavedSnapshots();
+    const snapshot = snapshots.find(item => item.id === snapshotId);
+    if (!snapshot) return null;
+
+    this.data = this.cloneData(snapshot.data);
+    this.data.id = this.generateId();
+    this.data.name = snapshot.name;
+    this.data.updated = new Date().toISOString();
+    return this.data;
+  }
+
+  async deleteSnapshot(snapshotId) {
+    const snapshots = await this.getSavedSnapshots();
+    const nextSnapshots = snapshots.filter(item => item.id !== snapshotId);
+    await this.setCollection('savedCanvases', nextSnapshots);
+    return nextSnapshots;
+  }
+
+  async saveTemplate(name) {
+    const templates = await this.getCollection('savedTemplates');
+    const template = {
+      id: this.generateId(),
+      name,
+      created: new Date().toISOString(),
+      updated: new Date().toISOString(),
+      data: this.cloneData()
+    };
+    templates.unshift(template);
+    await this.setCollection('savedTemplates', templates);
+    return template;
+  }
+
+  async getSavedTemplates() {
+    return this.getCollection('savedTemplates');
+  }
+
+  async loadTemplate(templateId) {
+    const templates = await this.getSavedTemplates();
+    const template = templates.find(item => item.id === templateId);
+    if (!template) return null;
+
+    this.data = this.cloneData(template.data);
+    this.data.id = this.generateId();
+    this.data.name = template.name;
+    this.data.created = new Date().toISOString();
+    this.data.updated = new Date().toISOString();
+    return this.data;
   }
 
   /**
@@ -157,6 +244,7 @@ class CanvasStore {
   clear() {
     this.data.canvas.nodes = [];
     this.data.canvas.edges = [];
+    this.data.templateInfo = null;
   }
 
   /**
