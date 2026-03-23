@@ -154,11 +154,20 @@ class CanvasEdge {
       text.setAttribute('font-weight', 'bold');
       text.setAttribute('pointer-events', 'none');
 
-      // 显示反馈类型符号或标签
-      let displayText = this.label;
-      if (this.type === 'positive') displayText = '+';
-      if (this.type === 'negative') displayText = '-';
-      if (this.hasDelay) displayText = (displayText ? displayText + ' //' : '//');
+      const displayParts = [];
+      if (this.label) {
+        displayParts.push(this.label);
+      }
+      if (this.type === 'positive') {
+        displayParts.push('+');
+      }
+      if (this.type === 'negative') {
+        displayParts.push('-');
+      }
+      if (this.hasDelay) {
+        displayParts.push('//');
+      }
+      const displayText = displayParts.join(' ');
 
       text.textContent = displayText;
       g.appendChild(text);
@@ -176,7 +185,7 @@ class CanvasEdge {
     // 事件监听
     hitArea.addEventListener('click', (e) => {
       e.stopPropagation();
-      canvas.selectEdge(this.id);
+      window.canvas?.selectEdge(this.id);
     });
 
     return g;
@@ -214,3 +223,5 @@ class CanvasEdge {
     return defs;
   }
 }
+
+window.CanvasEdge = CanvasEdge;

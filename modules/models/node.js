@@ -84,6 +84,10 @@ class CanvasNode {
     shapeElement.setAttribute('stroke-width', '2');
     shapeElement.setAttribute('class', 'node-shape');
 
+    if (this.type === 'flow') {
+      shapeElement.setAttribute('stroke-dasharray', '8 4');
+    }
+
     // 文本标签
     const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
     text.setAttribute('x', this.width / 2);
@@ -128,7 +132,7 @@ class CanvasNode {
     // 添加交互事件监听器
     shapeElement.addEventListener('click', (e) => {
       e.stopPropagation();
-      canvas.selectNode(this.id);
+      window.canvas?.selectNode(this.id);
     });
 
     return g;
@@ -169,3 +173,5 @@ class CanvasNode {
     });
   }
 }
+
+window.CanvasNode = CanvasNode;
