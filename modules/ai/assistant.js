@@ -207,21 +207,6 @@ function showAIAssistant() {
   generateButton.textContent = i18n.t('ai.generate');
   generateButton.style.cssText = 'background:#667eea;color:#fff;flex:1 1 calc(50% - 4px);justify-content:center;';
 
-  const patternButton = document.createElement('button');
-  patternButton.type = 'button';
-  patternButton.textContent = i18n.t('ai.findPatterns');
-  patternButton.style.cssText = 'flex:1 1 calc(50% - 4px);justify-content:center;';
-
-  const leverageButton = document.createElement('button');
-  leverageButton.type = 'button';
-  leverageButton.textContent = i18n.t('ai.findLeverage');
-  leverageButton.style.cssText = 'flex:1 1 calc(50% - 4px);justify-content:center;';
-
-  const extractButton = document.createElement('button');
-  extractButton.type = 'button';
-  extractButton.textContent = i18n.t('ai.extractInsights');
-  extractButton.style.cssText = 'flex:1 1 calc(50% - 4px);justify-content:center;';
-
   const answerButton = document.createElement('button');
   answerButton.type = 'button';
   answerButton.textContent = i18n.currentLang === 'zh-CN' ? '问答' : 'Q&A';
@@ -259,17 +244,6 @@ function showAIAssistant() {
   syncAIAssistantView();
   if (!aiAssistantUI.logs.length && !aiAssistantUI.result && !aiAssistantUI.error) appendAILog(logBox, i18n.t('ai.processIdle'));
 
-  patternButton.onclick = () => {
-    textarea.value = `${textarea.value.trim()}\n\n请重点识别当前系统中的关键模式。`.trim();
-    aiAssistantUI.prompt = textarea.value;
-  };
-
-  leverageButton.onclick = () => {
-    textarea.value = `${textarea.value.trim()}\n\n请重点识别当前系统中的关键杠杆点。`.trim();
-    aiAssistantUI.prompt = textarea.value;
-  };
-
-  extractButton.onclick = () => runAIAction(textarea, resultBox, logBox, requestAIInsights, applyAIInsightToCanvas);
   answerButton.onclick = () => runAIAction(textarea, resultBox, logBox, requestAIAnswer);
   generateButton.onclick = () => runAIAction(textarea, resultBox, logBox, requestAIGraph);
 
@@ -299,7 +273,7 @@ function showAIAssistant() {
   closeButtonHeader.onclick = () => {
     menu.style.display = 'none';
   };
-  actions.append(generateButton, patternButton, leverageButton, extractButton, answerButton, applyButton, replaceButton);
+  actions.append(generateButton, answerButton, applyButton, replaceButton);
   content.append(textarea, actions, resultBox, logSection);
   menu.append(header, content);
   menu.addEventListener('click', (event) => event.stopPropagation());
