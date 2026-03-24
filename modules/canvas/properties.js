@@ -78,7 +78,14 @@ Object.assign(Canvas.prototype, {
   },
 
   applyNodeUpdates(updates) {
-    store.updateNode(this.selectedNodeId, updates);
+    const node = store.getNodes().find((item) => item.id === this.selectedNodeId);
+    if (!node) return;
+    const nextUpdates = { ...updates };
+    if (updates.label !== undefined || updates.shape !== undefined || updates.type !== undefined) {
+      const preview = new CanvasNode({ ...node, ...nextUpdates });
+      nextUpdates.width = preview.getAutoWidth();
+    }
+    store.updateNode(this.selectedNodeId, nextUpdates);
     this.render();
     this.saveHistory();
     this.persistCanvasState();

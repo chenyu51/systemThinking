@@ -65,6 +65,9 @@ class CanvasStore {
     this.data.canvas.nodes = Array.isArray(this.data.canvas.nodes) ? this.data.canvas.nodes : [];
     this.data.canvas.edges = Array.isArray(this.data.canvas.edges) ? this.data.canvas.edges : [];
     this.data.canvas.texts = Array.isArray(this.data.canvas.texts) ? this.data.canvas.texts : [];
+    this.data.canvas.nodes.forEach((node) => {
+      node.width = getAutoNodeWidth(node.label, node.shape, node.type, node.width);
+    });
   }
 
   async load() {
@@ -293,6 +296,15 @@ function pickLatestRecord(localRecord, remoteRecord) {
   return parseTime(remoteRecord.updated) >= parseTime(localRecord.updated)
     ? cloneJSON(remoteRecord)
     : cloneJSON(localRecord);
+}
+
+function getAutoNodeWidth(label, shape = 'rectangle', type = 'variable', minWidth = 120) {
+  if (shape !== 'rectangle') return Math.max(minWidth || 120, 120);
+  const text = String(label || '');
+  const charWidth = /[^\x00-\xff]/.test(text) ? 18 : 9;
+  const coreWidth = 64 + Math.ceil(text.length * charWidth);
+  const badgePadding = type === 'variable' ? 0 : 26;
+  return Math.max(minWidth || 120, coreWidth + badgePadding);
 }
 
 const store = new CanvasStore();

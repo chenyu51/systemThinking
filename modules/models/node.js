@@ -11,7 +11,7 @@ class CanvasNode {
     this.y = options.y || 100;
     this.shape = options.shape || 'rectangle'; // rectangle | circle | diamond
     this.color = options.color || '#4A90E2';
-    this.width = options.width || 120;
+    this.width = CanvasNode.getAutoWidth(this.label, this.shape, this.type, options.width);
     this.height = options.height || 60;
     this.description = options.description || '';
   }
@@ -39,6 +39,24 @@ class CanvasNode {
    */
   static fromJSON(data) {
     return new CanvasNode(data);
+  }
+
+  static getAutoWidth(label, shape = 'rectangle', type = 'variable', minWidth = 120) {
+    if (shape !== 'rectangle') return Math.max(minWidth || 120, 120);
+    const text = String(label || '');
+    const charWidth = /[^\x00-\xff]/.test(text) ? 18 : 9;
+    const coreWidth = 64 + Math.ceil(text.length * charWidth);
+    const badgePadding = type === 'variable' ? 0 : 26;
+    return Math.max(minWidth || 120, coreWidth + badgePadding);
+  }
+
+  getAutoWidth() {
+    return CanvasNode.getAutoWidth(this.label, this.shape, this.type, this.width);
+  }
+
+  syncWidthToLabel() {
+    this.width = this.getAutoWidth();
+    return this.width;
   }
 
   getTypeStyle() {
@@ -89,6 +107,10 @@ class CanvasNode {
     return group;
   }
 
+  getLabelText() {
+    return String(this.label || '');
+  }
+
   /**
    * 设置节点文本
    */
@@ -96,6 +118,7 @@ class CanvasNode {
     textElement.textContent = String(label || '');
   }
   createSVGElement(options = {}) {
+    this.syncWidthToLabel();
     const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
     g.setAttribute('class', 'node');
     g.setAttribute('data-id', this.id);
