@@ -4,6 +4,7 @@ window.CANVAS_MODULE_MANIFEST = {
     '../modules/i18n/index.js'
   ],
   data: [
+    '../modules/data/storage.js',
     '../modules/data/store.js',
     '../modules/data/archetypes.js'
   ],

@@ -5,18 +5,24 @@ function normalizeAIConfig(aiConfig = {}) {
   return { ...aiConfig, models, currentModel, model: currentModel };
 }
 
-function getAIConfig() {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(['aiConfig'], (result) => {
-      resolve(normalizeAIConfig(result.aiConfig || {}));
-    });
-  });
+async function getAIConfig() {
+  const [syncResult, localConfigResult, localKeyResult] = await Promise.all([
+    storageGet(['aiConfig']),
+    storageGet(['aiConfig'], false),
+    storageGet(['aiApiKey'], false)
+  ]);
+  const syncConfig = normalizeAIConfig(syncResult.aiConfig || {});
+  const localConfig = normalizeAIConfig(localConfigResult.aiConfig || {});
+  const apiKey = localKeyResult.aiApiKey || localConfig.apiKey || syncConfig.apiKey || '';
+  return normalizeAIConfig({ ...syncConfig, ...localConfig, apiKey });
 }
 
-function saveAIConfig(aiConfig) {
-  return new Promise((resolve) => {
-    chrome.storage.local.set({ aiConfig }, () => resolve(aiConfig));
-  });
+async function saveAIConfig(aiConfig) {
+  const normalized = normalizeAIConfig(aiConfig);
+  const { apiKey = '', ...syncConfig } = normalized;
+  await storageSet({ aiConfig: syncConfig });
+  await storageSet({ aiApiKey: apiKey }, false);
+  return normalized;
 }
 
 function buildAISettingsSection() {

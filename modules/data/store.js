@@ -68,20 +68,16 @@ class CanvasStore {
   }
 
   async load() {
-    return new Promise((resolve) => {
-      chrome.storage.local.get(['canvas'], (result) => {
-        if (result.canvas) this.data = result.canvas;
-        this.ensureCanvasData();
-        resolve(this.data);
-      });
-    });
+    const result = await storageGet(['canvas']);
+    if (result.canvas) this.data = result.canvas;
+    this.ensureCanvasData();
+    return this.data;
   }
 
   async save() {
     this.data.updated = new Date().toISOString();
-    return new Promise((resolve) => {
-      chrome.storage.local.set({ canvas: this.data }, () => resolve(this.data));
-    });
+    await storageSet({ canvas: this.data });
+    return this.data;
   }
 
   cloneData(data = this.data) {
@@ -89,15 +85,13 @@ class CanvasStore {
   }
 
   async getCollection(key) {
-    return new Promise((resolve) => {
-      chrome.storage.local.get([key], (result) => resolve(Array.isArray(result[key]) ? result[key] : []));
-    });
+    const result = await storageGet([key]);
+    return Array.isArray(result[key]) ? result[key] : [];
   }
 
   async setCollection(key, items) {
-    return new Promise((resolve) => {
-      chrome.storage.local.set({ [key]: items }, () => resolve(items));
-    });
+    await storageSet({ [key]: items });
+    return items;
   }
 
   async saveSnapshot(name) {
