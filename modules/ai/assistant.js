@@ -205,7 +205,7 @@ function showAIAssistant() {
   };
 
   closeButtonHeader.onclick = () => {
-    menu.style.display = 'none';
+    hideAIAssistant();
   };
   actions.append(generateButton, answerButton, applyButton, replaceButton);
   content.append(textarea, actions, resultBox, logSection);
@@ -214,4 +214,10 @@ function showAIAssistant() {
   document.body.appendChild(menu);
 }
 
-Object.assign(window, { showAIAssistant });
+function hideAIAssistant() {
+  const menu = document.querySelector('.ai-assistant-menu');
+  if (!menu) return;
+  menu.style.display = 'none';
+}
+
+Object.assign(window, { showAIAssistant, hideAIAssistant });
