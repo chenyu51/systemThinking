@@ -7,7 +7,19 @@ function edge(source, target, type, label = '') {
 }
 
 function concepts(data = {}) {
-  return { feedbackLoops: [], stocks: [], flows: [], variables: [], delays: [], boundaries: [], archetypes: [], ...data };
+  return {
+    feedbackLoops: [],
+    stocks: [],
+    flows: [],
+    variables: [],
+    delays: [],
+    boundaries: [],
+    archetypes: [],
+    nonlinearRelations: [],
+    leveragePoints: [],
+    systemLevels: [],
+    ...data
+  };
 }
 
 function getArchetypeLabel(key, suffix = '') {
@@ -123,8 +135,80 @@ window.ARCHETYPES = {
     description: '干预措施会激起系统自我保护，导致政策效果越来越弱。',
     patterns: ['越改越难', '补丁越补越多', '局部优化引发全局反弹'],
     leveragePoints: ['改系统而不是改局部', '让受影响方参与设计', '减少副作用'],
-    systemConcepts: concepts({ feedbackLoops: ['政策推进回路', '系统反制回路'], stocks: ['制度惯性', '反弹强度'], flows: ['政策执行', '反制行动'], variables: ['政策力度', '顺从程度', '副作用'], delays: ['治理反馈延迟'], boundaries: ['制度边界', '组织边界'], archetypes: ['政策阻力'] }),
+    systemConcepts: concepts({ feedbackLoops: ['政策推进回路', '系统反制回路'], stocks: ['制度惯性', '反弹强度'], flows: ['政策执行', '反制行动'], variables: ['政策力度', '顺从程度', '副作用'], delays: ['治理反馈延迟'], boundaries: ['制度边界', '组织边界'], archetypes: ['政策阻力'], nonlinearRelations: ['政策强度与反制强度非线性关系'], leveragePoints: ['定点突破关键约束'], systemLevels: ['个体层级', '组织层级', '制度层级'] }),
     nodes: [node('政策措施', 180, 130, '#4A90E2', 'flow'), node('目标行为', 380, 130, '#51CF66'), node('系统反应', 380, 300, '#E74C3C'), node('副作用', 180, 300, '#E74C3C'), node('制度惯性', 560, 220, '#9C5311', 'stock')],
     edges: [edge(0, 1, 'positive', '推动'), edge(1, 2, 'negative', '触发'), edge(2, 3, 'positive', '产生'), edge(3, 0, 'negative', '削弱'), edge(4, 0, 'negative', '抵抗'), edge(4, 2, 'positive', '放大')]
+  },
+  addiction: {
+    name: '依赖与成瘾',
+    description: '短期解决方案带来快速缓解，使用者形成心理或生理依赖，最终失去自我调节能力。',
+    patterns: ['短期见效', '逐步形成依赖', '长期自主能力衰退', '离开则症状复发'],
+    leveragePoints: ['限制快感反馈的强度', '建立替代性正反馈', '逐步戒断而非冷火鸡'],
+    systemConcepts: concepts({ feedbackLoops: ['快速快感循环', '依赖强化循环', '自主能力衰退循环'], stocks: ['依赖程度', '自主能力', '成瘾物质积累'], flows: ['使用行为', '快感释放', '衰退过程'], variables: ['快感强度', '依赖心理', '戒断难度', '替代能力'], delays: ['成瘾临界延迟', '衰退显现延迟'], boundaries: ['成瘾临界点', '生理极限'], archetypes: ['依赖与成瘾'], nonlinearRelations: ['使用频率与依赖程度的加速增长'], leveragePoints: ['尽早识别成瘾信号', '设置使用上限'], systemLevels: ['个人层级', '社会层级'] }),
+    nodes: [node('快速解决', 150, 120, '#FFD700', 'flow'), node('快感反馈', 350, 120, '#51CF66'), node('依赖程度', 250, 280, '#E74C3C', 'stock'), node('自主能力', 500, 120, '#4A90E2', 'stock'), node('戒断症状', 350, 350, '#E74C3C')],
+    edges: [edge(0, 1, 'positive', '产生'), edge(1, 2, 'positive', '强化'), edge(2, 0, 'positive', '渴求'), edge(2, 3, 'negative', '消蚀'), edge(3, 0, 'negative', '抑制'), edge(2, 4, 'positive', '触发')]
+  },
+  resistanceToDiagnosis: {
+    name: '诊断抗拒',
+    description: '系统对问题的存在和根因的认识存在抗拒，导致问题被持续否认和掩盖。',
+    patterns: ['问题被否认', '根因被掩盖', '诊断信息被过滤', '越接近真相越被排斥'],
+    leveragePoints: ['引入独立第三方诊断', '建立早期预警系统', '降低承认问题的成本'],
+    systemConcepts: concepts({ feedbackLoops: ['问题否认循环', '信息过滤循环'], stocks: ['认知偏差', '隐瞒程度'], flows: ['诊断信息', '抗拒行为'], variables: ['问题严重性', '承认成本', '诊断准确度'], delays: ['认知滞后延迟'], boundaries: ['心理防线'], archetypes: ['诊断抗拒'], nonlinearRelations: ['问题严重性与否认强度的非线性关系'], leveragePoints: ['创造安全的反馈机制'], systemLevels: ['认知层级', '组织文化层级'] }),
+    nodes: [node('实际问题', 150, 130, '#E74C3C'), node('问题征兆', 350, 130, '#FFD700'), node('认知偏差', 350, 280, '#9C5311', 'stock'), node('否认幅度', 150, 280, '#E74C3C', 'stock'), node('诊断信息', 550, 200, '#4A90E2')],
+    edges: [edge(0, 1, 'positive', '表现'), edge(1, 2, 'positive', '产生'), edge(2, 1, 'negative', '歪曲'), edge(3, 2, 'positive', '强化'), edge(4, 2, 'negative', '挑战')]
+  },
+  postponement: {
+    name: '耽搁与延迟',
+    description: '紧急但不重要的事物不断推迟，直到变成紧急且重要，此时代价已大幅上升。',
+    patterns: ['重要非紧急被推迟', '突然变成危机', '补救代价翻倍', '事后方案匆忙低效'],
+    leveragePoints: ['设置预警触发点', '重新定义优先级权重', '前置化决策期限'],
+    systemConcepts: concepts({ feedbackLoops: ['优先级贬低循环', '危机应急循环'], stocks: ['未完成工作', '危机程度'], flows: ['任务延迟流', '补救投入'], variables: ['任务紧急度', '优先级感知', '补救成本'], delays: ['危机爆发延迟', '代价显现延迟'], boundaries: ['可恢复时间窗口'], archetypes: ['耽搁与延迟'], nonlinearRelations: ['延迟时间与补救成本的指数关系'], leveragePoints: ['尽早投入小成本'], systemLevels: ['任务层级', '生命周期层级'] }),
+    nodes: [node('重要非紧急', 150, 120, '#4A90E2'), node('推迟决定', 350, 120, '#FFD700', 'flow'), node('未完成工作', 250, 280, '#E74C3C', 'stock'), node('危机触发', 350, 350, '#E74C3C'), node('补救成本', 150, 350, '#E74C3C')],
+    edges: [edge(0, 1, 'positive', '看似可延'), edge(1, 2, 'positive', '积累'), edge(2, 3, 'positive', '触发'), edge(3, 4, 'positive', '急剧上升')]
+  },
+  successAndComplacency: {
+    name: '成功与自满',
+    description: '初期成功会导致警觉性下降，带来过度自信，最终在新的危机中失利。',
+    patterns: ['成功后放松', '警觉性下降', '新威胁未被识别', '衰退突然而急速'],
+    leveragePoints: ['保持外部视角和基准', '持续培训和能力建设', '危机预案制度化'],
+    systemConcepts: concepts({ feedbackLoops: ['成功强化循环', '警觉性衰减循环', '脆弱性积累循环'], stocks: ['组织能力', '警觉程度', '隐性威胁'], flows: ['改进行动', '松懈过程'], variables: ['成功程度', '过度自信水平', '风险识别率'], delays: ['威胁显现延迟'], boundaries: ['组织学习边界'], archetypes: ['成功与自满'], nonlinearRelations: ['成功程度与自满速度的加速关系'], leveragePoints: ['外部基准检查'], systemLevels: ['个人层级', '组织文化层级'] }),
+    nodes: [node('初期成功', 200, 100, '#51CF66'), node('自信提高', 400, 100, '#FFD700'), node('警觉下降', 300, 250, '#E74C3C', 'stock'), node('风险积累', 500, 250, '#E74C3C', 'stock'), node('危机爆发', 400, 400, '#E74C3C')],
+    edges: [edge(0, 1, 'positive', '导致'), edge(1, 2, 'positive', '产生'), edge(2, 3, 'positive', '允许'), edge(3, 4, 'positive', '最终')]
+  },
+  demandSupplyMismatch: {
+    name: '需求供应错位',
+    description: '供给与需求的节奏失配，导致要么过度库存要么频繁缺货，系统在两个极端间摇摆。',
+    patterns: ['过度库存周期', '频繁缺货周期', '预测困难', '库存积压或饥荒交替'],
+    leveragePoints: ['同步信息流与物流', '减少预测周期', '增加灵活性和频繁调整'],
+    systemConcepts: concepts({ feedbackLoops: ['库存堆积回路', '缺货驱动回路', '摇摆循环'], stocks: ['库存水位', '待发订单'], flows: ['生产流', '销售流', '补给流'], variables: ['需求波动', '预测准度', '生产周期'], delays: ['订货到货延迟', '生产提前期'], boundaries: ['仓储容量', '生产能力'], archetypes: ['需求供应错位'], nonlinearRelations: ['预测周期与波动幅度的正相关'], leveragePoints: ['缩短反应周期'], systemLevels: ['供应链层级', '市场层级'] }),
+    nodes: [node('市场需求', 150, 120, '#4A90E2'), node('预测需求', 350, 120, '#FFD700'), node('库存决策', 250, 280, '#0D6B5C', 'flow'), node('现有库存', 150, 350, '#9C5311', 'stock'), node('缺货或积压', 450, 280, '#E74C3C')],
+    edges: [edge(0, 1, 'positive', '推动'), edge(1, 2, 'positive', '驱动'), edge(2, 3, 'positive', '结果'), edge(3, 4, 'positive', '导致')]
+  },
+  hiddenObjectiveConflict: {
+    name: '隐性目标冲突',
+    description: '表面上的协作目标掩盖了各方实际的隐性目标，这些目标之间存在根本冲突。',
+    patterns: ['表面目标一致', '实际行动相悖', '沟通效率低下', '协作效果不理想'],
+    leveragePoints: ['显性化真实目标', '建立透明的目标系统', '设计激励机制对齐'],
+    systemConcepts: concepts({ feedbackLoops: ['信任侵蚀循环', '隐瞒强化循环'], stocks: ['信任关系', '隐瞒程度', '冲突强度'], flows: ['信息流', '目标调整'], variables: ['目标透明度', '利益一致性', '沟通诚意'], delays: ['冲突显现延迟'], boundaries: ['组织文化边界'], archetypes: ['隐性目标冲突'], nonlinearRelations: ['隐瞒程度与信任丧失的加速关系'], leveragePoints: ['制度化透明目标审视'], systemLevels: ['个人层级', '团队层级', '组织层级'] }),
+    nodes: [node('表面目标', 200, 100, '#4A90E2'), node('隐性目标A', 100, 300, '#FFD700'), node('隐性目标B', 300, 300, '#FFD700'), node('实际行动差异', 200, 450, '#E74C3C'), node('信任关系', 450, 300, '#9C5311', 'stock')],
+    edges: [edge(0, 1, 'positive', '掩盖'), edge(0, 2, 'positive', '掩盖'), edge(1, 3, 'positive', '驱动'), edge(2, 3, 'positive', '驱动'), edge(3, 4, 'negative', '侵蚀')]
+  },
+  delayedPerception: {
+    name: '延迟感知',
+    description: '系统的反馈存在时间滞后，决策者对现状的感知总是落后于实际，导致过度纠正。',
+    patterns: ['决策基于过时信息', '频繁过度纠正', '系统摇摆幅度大', '适应性差'],
+    leveragePoints: ['加快信息反馈速度', '改进预测模型', '减少决策频率'],
+    systemConcepts: concepts({ feedbackLoops: ['感知滞后循环', '纠正过度循环'], stocks: ['信息滞后时间', '系统状态偏差'], flows: ['实际变化', '感知变化', '纠正行动'], variables: ['反馈延迟', '决策周期', '纠正强度'], delays: ['感知延迟', '信息传递延迟'], boundaries: ['技术极限', '信息获取边界'], archetypes: ['延迟感知'], nonlinearRelations: ['延迟时间与系统摇摆幅度的非线性关系'], leveragePoints: ['引入预测性指标'], systemLevels: ['信息层级', '决策层级'] }),
+    nodes: [node('实际状态', 200, 100, '#4A90E2'), node('感知状态', 400, 100, '#FFD700'), node('感知延迟', 300, 200, '#E74C3C', 'stock'), node('纠正行动', 200, 350, '#0D6B5C', 'flow'), node('系统摇摆', 450, 250, '#E74C3C')],
+    edges: [edge(0, 1, 'positive', '影响'), edge(0, 2, 'positive', '产生'), edge(2, 1, 'positive', '造成'), edge(1, 3, 'positive', '驱动'), edge(3, 0, 'negative', '纠正'), edge(3, 4, 'positive', '导致')]
+  },
+  networkExternality: {
+    name: '网络外部性',
+    description: '一个参与者的加入会增加所有其他参与者的价值，一旦达到临界数量会产生自强化循环。',
+    patterns: ['初期增长缓慢', '临界点后加速', '先发者优势', '赢家通吃现象'],
+    leveragePoints: ['快速达到初始临界量', '降低进入成本', '建立标准和互操作性'],
+    systemConcepts: concepts({ feedbackLoops: ['网络效应正循环', '用户吸引循环'], stocks: ['用户数量', '网络价值'], flows: ['新用户加入', '价值创造'], variables: ['参与者数量', '网络价值'],  delays: ['临界点延迟'], boundaries: ['市场容量'], archetypes: ['网络外部性'], nonlinearRelations: ['用户数与网络价值的非线性增长'], leveragePoints: ['启动期补贴降低进入障碍'], systemLevels: ['微观用户层级', '宏观网络层级'] }),
+    nodes: [node('用户数量', 200, 120, '#4A90E2', 'stock'), node('网络价值', 400, 120, '#51CF66', 'variable'), node('参与意愿', 300, 280, '#FFD700'), node('临界值', 500, 280, '#0D6B5C'), node('自强化效应', 400, 350, '#51CF66')],
+    edges: [edge(0, 1, 'positive', '决定'), edge(1, 2, 'positive', '驱动'), edge(2, 0, 'positive', '导致'), edge(0, 3, 'positive', '接近'), edge(3, 4, 'positive', '触发')]
   }
 };
