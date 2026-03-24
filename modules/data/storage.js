@@ -4,7 +4,7 @@ function getChromeStorageArea(preferSync = true) {
   return null;
 }
 
-const STORAGE_CHUNK_SIZE = 6000;
+const STORAGE_CHUNK_SIZE = 3000;
 const STORAGE_CHUNK_LIMIT = 200;
 
 function normalizeStorageKeys(keys) {
@@ -141,7 +141,11 @@ async function storageSet(items, preferSync = true) {
     await storageSetArea(items, 'local');
     return items;
   }
-  await storageSetArea(items, 'sync');
+  try {
+    await storageSetArea(items, 'sync');
+  } catch (error) {
+    console.warn('Sync storage write failed, falling back to local storage:', error);
+  }
   await storageSetArea(items, 'local');
   return items;
 }
