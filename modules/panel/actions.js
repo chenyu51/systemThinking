@@ -157,6 +157,39 @@ function relayoutCanvas() {
   canvas.updateStatus(i18n.t('message.layoutApplied'));
 }
 
+async function syncAllData() {
+  const canvas = getCanvasInstance();
+  if (!canvas) return;
+  canvas.persistCanvasState();
+  await store.save();
+  await store.mergeCloudSnapshot();
+  await syncAIConfigToCloud();
+  resetCanvasUIState();
+  syncCanvasFromStore();
+  canvas.updateStatus(i18n.currentLang === 'zh-CN' ? '已合并同步到云端' : 'Merged and synced');
+}
+
+async function pullRemoteData() {
+  const canvas = getCanvasInstance();
+  if (!canvas) return;
+  if (!confirm(i18n.currentLang === 'zh-CN' ? '从云端获取会覆盖本地当前数据，继续吗？' : 'Pulling from cloud will overwrite local data. Continue?')) return;
+  const remoteSnapshot = await store.getCloudSnapshot('sync');
+  const remoteAIConfig = await storageGetArea(['aiConfig'], 'sync');
+  const hasRemoteCanvas = !!remoteSnapshot.canvas;
+  const hasRemoteCollections = (remoteSnapshot.savedCanvases?.length || 0) > 0 || (remoteSnapshot.savedTemplates?.length || 0) > 0;
+  const hasRemoteAIConfig = !!(remoteAIConfig.aiConfig && (remoteAIConfig.aiConfig.provider || remoteAIConfig.aiConfig.baseUrl || remoteAIConfig.aiConfig.currentModel || remoteAIConfig.aiConfig.model || (Array.isArray(remoteAIConfig.aiConfig.models) && remoteAIConfig.aiConfig.models.length)));
+  if (!hasRemoteCanvas && !hasRemoteCollections && !hasRemoteAIConfig) {
+    canvas.updateStatus(i18n.currentLang === 'zh-CN' ? '云端没有可获取的数据' : 'No remote data available');
+    return;
+  }
+  await store.pullRemoteSnapshot();
+  await pullAIConfigFromCloud();
+  resetCanvasUIState();
+  syncCanvasFromStore();
+  canvas.saveHistory();
+  canvas.updateStatus(i18n.currentLang === 'zh-CN' ? '已从云端获取数据' : 'Pulled data from cloud');
+}
+
 function applyPanelVisibility() {
   const leftHidden = !!store.data.canvas.leftPanelHidden;
   const rightHidden = !!store.data.canvas.rightPanelHidden;

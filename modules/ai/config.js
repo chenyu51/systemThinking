@@ -25,6 +25,33 @@ async function saveAIConfig(aiConfig) {
   return normalized;
 }
 
+async function syncAIConfigToCloud() {
+  const aiConfig = await getAIConfig();
+  await saveAIConfig(aiConfig);
+  return aiConfig;
+}
+
+async function pullAIConfigFromCloud() {
+  const [syncResult, localKeyResult] = await Promise.all([
+    storageGetArea(['aiConfig'], 'sync'),
+    storageGetArea(['aiApiKey'], 'local')
+  ]);
+  const remoteConfig = normalizeAIConfig(syncResult.aiConfig || {});
+  const hasRemoteConfig = !!(remoteConfig.provider || remoteConfig.baseUrl || remoteConfig.models.length || remoteConfig.currentModel || remoteConfig.model);
+  if (!hasRemoteConfig) {
+    return normalizeAIConfig({
+      ...(normalizeAIConfig((await getAIConfig()) || {})),
+      apiKey: localKeyResult.aiApiKey || ''
+    });
+  }
+  const apiKey = localKeyResult.aiApiKey || remoteConfig.apiKey || '';
+  const merged = normalizeAIConfig({ ...remoteConfig, apiKey });
+  const { apiKey: nextApiKey = '', ...syncConfig } = merged;
+  await storageSetArea({ aiConfig: syncConfig }, 'sync');
+  await storageSetArea({ aiConfig: syncConfig, aiApiKey: nextApiKey }, 'local');
+  return merged;
+}
+
 function buildAISettingsSection() {
   const container = document.createElement('div');
   container.style.cssText = 'padding:0 16px 8px;';
@@ -134,4 +161,4 @@ function buildAISettingsSection() {
   return container;
 }
 
-Object.assign(window, { getAIConfig, saveAIConfig, buildAISettingsSection });
+Object.assign(window, { getAIConfig, saveAIConfig, syncAIConfigToCloud, pullAIConfigFromCloud, buildAISettingsSection });

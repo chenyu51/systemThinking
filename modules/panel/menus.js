@@ -1,5 +1,5 @@
 const POPUP_SELECTORS = ['.export-menu', '.saved-menu', '.settings-menu', '.archetype-menu', '.graph-info-menu', '.file-menu', '.view-menu', '.edit-menu', '.canvas-context-menu'];
-const POPUP_TRIGGER_SELECTORS = ['#btnFile', '#btnView', '#btnEdit', '#btnSettings', '#btnAI', '#btnGraphInfo'];
+const POPUP_TRIGGER_SELECTORS = ['#btnFile', '#btnView', '#btnEdit', '#btnSettings', '#btnAI', '#btnSync', '#btnGraphInfo'];
 let popupCloseHandlerBound = false;
 
 function getCanvasInstance() {
@@ -69,6 +69,23 @@ function showEditMenu() {
   })));
   document.body.appendChild(menu);
   anchorPopupToTrigger(menu, document.getElementById('btnEdit'));
+}
+
+function showSyncMenu() {
+  let menu = document.querySelector('.sync-menu');
+  if (menu) return menu.remove();
+  menu = buildPopup('sync-menu', 'position:fixed;background:white;border:1px solid #e0e0e0;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.2);z-index:1000;width:220px;overflow:hidden;');
+  const mergeLabel = i18n.currentLang === 'zh-CN' ? '合并同步' : 'Merge Sync';
+  const pullLabel = i18n.currentLang === 'zh-CN' ? '从云端获取' : 'Pull From Cloud';
+  [
+    { label: mergeLabel, action: syncAllData },
+    { label: pullLabel, action: pullRemoteData }
+  ].forEach((option) => menu.appendChild(buildMenuItem(option.label, () => {
+    menu.remove();
+    option.action();
+  })));
+  document.body.appendChild(menu);
+  anchorPopupToTrigger(menu, document.getElementById('btnSync'));
 }
 
 async function showSavedMenu() {

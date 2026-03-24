@@ -14,6 +14,8 @@ function initializeEventListeners() {
   document.getElementById('btnView').textContent = `${i18n.currentLang === 'zh-CN' ? '查看' : 'View'} ▼`;
   document.getElementById('btnEdit').textContent = `${i18n.currentLang === 'zh-CN' ? '编辑' : 'Edit'} ▼`;
   document.getElementById('btnAI').textContent = i18n.t('toolbar.ai');
+  document.getElementById('btnSync').title = i18n.currentLang === 'zh-CN' ? '同步数据' : 'Sync data';
+  document.getElementById('btnSync').textContent = '⇅';
   document.getElementById('btnGraphInfo').title = i18n.t('properties.graphInfo');
   document.getElementById('btnGraphInfo').textContent = 'ⓘ';
   document.getElementById('btnSettings').textContent = i18n.t('toolbar.settings');
@@ -25,6 +27,7 @@ function initializeEventListeners() {
   document.getElementById('btnView').onclick = (event) => { event.stopPropagation(); showViewMenu(); };
   document.getElementById('btnEdit').onclick = (event) => { event.stopPropagation(); showEditMenu(); };
   document.getElementById('btnAI').onclick = (event) => { event.stopPropagation(); showAIAssistant(); };
+  document.getElementById('btnSync').onclick = (event) => { event.stopPropagation(); showSyncMenu(); };
   document.getElementById('btnGraphInfo').onclick = (event) => { event.stopPropagation(); showGraphInfoMenu(); };
   document.getElementById('btnSettings').onclick = (event) => { event.stopPropagation(); openSettings(); };
   document.getElementById('btnHideLeftPanel').onclick = () => togglePanel('left');

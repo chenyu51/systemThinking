@@ -227,10 +227,72 @@ class CanvasStore {
     nextData.canvas.rightPanelHidden = !!canvasState.rightPanelHidden;
     this.data = nextData;
   }
+  async getCloudSnapshot(areaName = 'sync') {
+    const result = await storageGetArea(['canvas', 'savedCanvases', 'savedTemplates'], areaName);
+    return {
+      canvas: result.canvas || null,
+      savedCanvases: Array.isArray(result.savedCanvases) ? result.savedCanvases : [],
+      savedTemplates: Array.isArray(result.savedTemplates) ? result.savedTemplates : []
+    };
+  }
 
+  async writeCloudSnapshot(snapshot, areaName = 'sync') {
+    await storageSetArea(snapshot, areaName);
+    return snapshot;
+  }
+
+  async mergeCloudSnapshot() {
+    const [localSnapshot, remoteSnapshot] = await Promise.all([this.getCloudSnapshot('local'), this.getCloudSnapshot('sync')]);
+    const merged = {
+      canvas: pickLatestRecord(localSnapshot.canvas, remoteSnapshot.canvas) || this.createDefaultData(),
+      savedCanvases: mergeCollectionById(localSnapshot.savedCanvases, remoteSnapshot.savedCanvases),
+      savedTemplates: mergeCollectionById(localSnapshot.savedTemplates, remoteSnapshot.savedTemplates)
+    };
+    await this.writeCloudSnapshot(merged, 'sync');
+    await this.writeCloudSnapshot(merged, 'local');
+    this.data = merged.canvas || this.createDefaultData();
+    this.ensureCanvasData();
+    return merged;
+  }
+
+  async pullRemoteSnapshot() {
+    const remoteSnapshot = await this.getCloudSnapshot('sync');
+    await this.writeCloudSnapshot(remoteSnapshot, 'local');
+    this.data = remoteSnapshot.canvas || this.createDefaultData();
+    this.ensureCanvasData();
+    return remoteSnapshot;
+  }
   getStats() {
     return { nodeCount: this.data.canvas.nodes.length, edgeCount: this.data.canvas.edges.length };
   }
+}
+
+function cloneJSON(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function parseTime(value) {
+  return Date.parse(value || '') || 0;
+}
+
+function mergeCollectionById(localItems = [], remoteItems = []) {
+  const map = new Map();
+  [...localItems, ...remoteItems].forEach((item) => {
+    if (!item?.id) return;
+    const existing = map.get(item.id);
+    if (!existing || parseTime(item.updated) >= parseTime(existing.updated)) {
+      map.set(item.id, cloneJSON(item));
+    }
+  });
+  return [...map.values()];
+}
+
+function pickLatestRecord(localRecord, remoteRecord) {
+  if (!localRecord) return remoteRecord ? cloneJSON(remoteRecord) : null;
+  if (!remoteRecord) return cloneJSON(localRecord);
+  return parseTime(remoteRecord.updated) >= parseTime(localRecord.updated)
+    ? cloneJSON(remoteRecord)
+    : cloneJSON(localRecord);
 }
 
 const store = new CanvasStore();

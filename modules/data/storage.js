@@ -4,6 +4,28 @@ function getChromeStorageArea(preferSync = true) {
   return null;
 }
 
+function storageGetArea(keys, areaName = 'sync') {
+  return new Promise((resolve) => {
+    const area = chrome?.storage?.[areaName] || null;
+    if (!area) {
+      resolve({});
+      return;
+    }
+    area.get(keys, (result) => resolve(result || {}));
+  });
+}
+
+function storageSetArea(items, areaName = 'sync') {
+  return new Promise((resolve) => {
+    const area = chrome?.storage?.[areaName] || null;
+    if (!area) {
+      resolve(items);
+      return;
+    }
+    area.set(items, () => resolve(items));
+  });
+}
+
 function storageGet(keys, preferSync = true) {
   return new Promise((resolve) => {
     const syncArea = preferSync ? chrome?.storage?.sync : null;
@@ -51,5 +73,7 @@ function storageSet(items, preferSync = true) {
 }
 
 window.getChromeStorageArea = getChromeStorageArea;
+window.storageGetArea = storageGetArea;
+window.storageSetArea = storageSetArea;
 window.storageGet = storageGet;
 window.storageSet = storageSet;
