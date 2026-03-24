@@ -25,6 +25,7 @@ window.CANVAS_MODULE_MANIFEST = {
   ],
   ai: [
     '../modules/ai/config.js',
+    '../modules/ai/providers.js',
     '../modules/ai/graph.js',
     '../modules/ai/render.js',
     '../modules/ai/assistant.js'
