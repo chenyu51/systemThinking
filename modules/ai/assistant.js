@@ -23,23 +23,24 @@ async function requestAIAnswer(prompt, logger = () => {}) {
     systemPrompt: '你是系统思维问答助手。请直接回答用户问题，给出清晰、简洁、有结构的中文回答。',
     jsonMode: false
   }), logger);
-  return { answer: parseAIText(result.provider, result.raw), raw: result.raw, meta: result.meta };
+  return { answer: parseAIText(result.provider, result.protocol, result.raw), raw: result.raw, meta: result.meta };
 }
 
 async function requestAIJSON(options, prompt) {
   const result = await requestAI((providerOptions) => ({ ...providerOptions, ...options }), options.logger);
-  const graph = parseAIResponse(result.provider, result.raw);
+  const graph = parseAIResponse(result.provider, result.protocol, result.raw);
   options.logger?.(i18n.t('ai.stepParsed', { nodes: Array.isArray(graph.nodes) ? graph.nodes.length : 0, edges: Array.isArray(graph.edges) ? graph.edges.length : 0 }));
-  return { graph, raw: result.raw, meta: { prompt, provider: result.provider, model: result.model } };
+  return { graph, raw: result.raw, meta: { prompt, provider: result.provider, protocol: result.protocol, model: result.model } };
 }
 
 async function requestAI(builder, logger = () => {}) {
-  const { provider = 'openai', baseUrl, apiKey, model } = await getAIConfig();
+  const { provider = 'openai', protocol = 'chat', baseUrl, apiKey, model } = await getAIConfig();
   if (!baseUrl || !apiKey || !model) throw new Error(i18n.t('ai.missingConfig'));
-  const { requestPrompt, systemPrompt, jsonMode = true } = builder({ provider, baseUrl, apiKey, model });
-  logger(i18n.t('ai.stepConfigLoaded', { provider, model }));
-  logger(i18n.t('ai.stepRequestReady', { url: baseUrl }));
-  const response = await fetch(baseUrl, buildAIRequestOptions(provider, apiKey, model, requestPrompt, systemPrompt, jsonMode));
+  const { requestPrompt, systemPrompt, jsonMode = true } = builder({ provider, protocol, baseUrl, apiKey, model });
+  const endpoint = resolveAIEndpoint(baseUrl, protocol);
+  logger(i18n.t('ai.stepConfigLoaded', { provider: `${provider}/${protocol}`, model }));
+  logger(i18n.t('ai.stepRequestReady', { url: endpoint }));
+  const response = await fetch(endpoint, buildAIRequestOptions(provider, protocol, apiKey, model, requestPrompt, systemPrompt, jsonMode));
   logger(i18n.t('ai.stepResponseReceived', { status: response.status }));
   if (!response.ok) {
     const text = await response.text();
@@ -48,74 +49,7 @@ async function requestAI(builder, logger = () => {}) {
   }
   const raw = await response.json();
   logger(i18n.t('ai.stepParsing'));
-  return { raw, provider, model, meta: { provider, model } };
-}
-
-function buildAIRequestOptions(provider, apiKey, model, prompt, systemPrompt, jsonMode = true) {
-  if (provider === 'anthropic') {
-    return {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': apiKey,
-        'anthropic-version': '2023-06-01'
-      },
-      body: JSON.stringify({
-        model,
-        max_tokens: 1200,
-        system: systemPrompt,
-        messages: [{ role: 'user', content: prompt }]
-      })
-    };
-  }
-  return {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${apiKey}`
-    },
-    body: JSON.stringify({
-      model,
-      temperature: 0.3,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: prompt }
-      ]
-      , ...(jsonMode ? { response_format: { type: 'json_object' } } : {})
-    })
-  };
-}
-
-function parseAIResponse(provider, data) {
-  if (provider === 'anthropic') {
-    const content = Array.isArray(data.content)
-      ? data.content.filter((item) => item.type === 'text').map((item) => item.text).join('\n')
-      : '{}';
-    return JSON.parse(extractJSONText(content));
-  }
-  const content = data.choices?.[0]?.message?.content || '{}';
-  return JSON.parse(extractJSONText(content));
-}
-
-function parseAIText(provider, data) {
-  if (provider === 'anthropic') return Array.isArray(data.content) ? data.content.filter((item) => item.type === 'text').map((item) => item.text).join('\n').trim() : '';
-  const content = data.choices?.[0]?.message?.content;
-  return Array.isArray(content) ? content.map((item) => item.text || '').join('\n').trim() : String(content || '').trim();
-}
-
-function extractJSONText(content) {
-  const text = String(content || '').trim();
-  const fenced = text.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
-  if (fenced?.[1]) {
-    return fenced[1].trim();
-  }
-  const start = text.indexOf('{');
-  const end = text.lastIndexOf('}');
-  if (start !== -1 && end !== -1 && end >= start) {
-    return text.slice(start, end + 1).trim();
-  }
-
-  return text || '{}';
+  return { raw, provider, protocol, model, meta: { provider, protocol, model } };
 }
 
 function applyAIGraphToCanvas(aiResult) {

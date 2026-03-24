@@ -103,7 +103,7 @@ async function showSavedMenu() {
 function openSettings() {
   let settings = document.querySelector('.settings-menu');
   if (settings) return settings.remove();
-  settings = buildPopup('settings-menu', 'position:fixed;background:white;border:1px solid #e0e0e0;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.2);z-index:1000;width:240px;padding:12px 0;');
+  settings = buildPopup('settings-menu', 'position:fixed;background:white;border:1px solid #e0e0e0;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.2);z-index:1000;width:240px;max-height:calc(100vh - 120px);overflow-y:auto;overscroll-behavior:contain;padding:12px 0;');
   settings.appendChild(buildTitle(i18n.t('toolbar.settings'), 'padding:8px 16px;font-weight:600;color:#333;font-size:12px;text-transform:uppercase;letter-spacing:.5px;'));
   settings.appendChild(buildTitle('Language / 语言', 'padding:8px 16px;font-size:12px;color:#666;'));
   i18n.getLanguages().forEach((lang) => settings.appendChild(buildLanguageItem(lang, settings)));

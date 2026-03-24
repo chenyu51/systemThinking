@@ -9,12 +9,14 @@ function normalizeAIConfig(aiConfig = {}) {
   const apiKeys = normalizeApiKeys(aiConfig.apiKeys || {});
   const apiKey = apiKeys[currentProvider?.id || currentProviderId] || aiConfig.apiKey || '';
   if (currentProvider && apiKey && !apiKeys[currentProvider.id]) apiKeys[currentProvider.id] = apiKey;
+  const protocol = normalizeProtocol(currentProvider?.protocol || aiConfig.protocol || (currentProvider?.provider === 'anthropic' ? 'anthropic' : 'chat'), currentProvider?.provider);
   return {
     ...aiConfig,
     providers: normalizedProviders,
     currentProviderId: currentProvider?.id || currentProviderId,
     currentProvider,
     provider: currentProvider?.provider || aiConfig.provider || 'openai',
+    protocol,
     baseUrl: currentProvider?.baseUrl || aiConfig.baseUrl || '',
     models: currentProvider?.models || models,
     currentModel: currentProvider?.currentModel || currentModel,
@@ -92,6 +94,7 @@ function normalizeProviders(providers = [], aiConfig = {}) {
       id: aiConfig.currentProviderId || 'default',
       name: aiConfig.providerName || '',
       provider: aiConfig.provider || 'openai',
+      protocol: aiConfig.protocol || (aiConfig.provider === 'anthropic' ? 'anthropic' : 'chat'),
       baseUrl: aiConfig.baseUrl || '',
       models: aiConfig.models || [],
       currentModel: aiConfig.currentModel || aiConfig.model || ''
@@ -104,10 +107,12 @@ function normalizeProviders(providers = [], aiConfig = {}) {
 function normalizeProviderProfile(provider = {}, index = 0) {
   const models = Array.from(new Set([...(Array.isArray(provider.models) ? provider.models : []), ...(provider.model ? [provider.model] : [])].map((item) => String(item || '').trim()).filter(Boolean)));
   const currentModel = provider.currentModel || provider.model || models[0] || '';
+  const protocol = normalizeProtocol(provider.protocol || (provider.provider === 'anthropic' ? 'anthropic' : 'chat'), provider.provider);
   return {
     id: provider.id || `provider_${index}_${Date.now()}`,
     name: provider.name || (provider.provider === 'anthropic' ? 'Anthropic' : 'OpenAI'),
     provider: provider.provider || 'openai',
+    protocol,
     baseUrl: provider.baseUrl || '',
     models,
     currentModel,
@@ -119,4 +124,12 @@ function normalizeApiKeys(apiKeys = {}) {
   return apiKeys && typeof apiKeys === 'object' && !Array.isArray(apiKeys) ? { ...apiKeys } : {};
 }
 
-Object.assign(window, { getAIConfig, saveAIConfig, syncAIConfigToCloud, pullAIConfigFromCloud, normalizeAIConfig, normalizeProviderProfile, normalizeProviders, normalizeApiKeys });
+function normalizeProtocol(protocol, provider = '') {
+  const value = String(protocol || '').trim().toLowerCase();
+  if (value === 'anthropic') return 'anthropic';
+  if (value === 'responses' || value === 'openai-responses' || value === 'codex') return 'responses';
+  if (value === 'chat' || value === 'openai-chat' || value === 'completions') return 'chat';
+  return provider === 'anthropic' ? 'anthropic' : 'chat';
+}
+
+Object.assign(window, { getAIConfig, saveAIConfig, syncAIConfigToCloud, pullAIConfigFromCloud, normalizeAIConfig, normalizeProviderProfile, normalizeProviders, normalizeApiKeys, normalizeProtocol });

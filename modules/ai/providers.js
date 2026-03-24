@@ -45,6 +45,17 @@ function buildAISettingsSection() {
     <option value="anthropic">${i18n.t('settings.providerAnthropic')}</option>
   `;
 
+  const protocolLabel = document.createElement('div');
+  protocolLabel.style.cssText = 'font-size:12px;color:#666;margin-bottom:6px;';
+  protocolLabel.textContent = i18n.currentLang === 'zh-CN' ? '请求方式' : 'Request Mode';
+  const protocolSelect = document.createElement('select');
+  protocolSelect.style.cssText = 'width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;font-size:12px;margin-bottom:10px;';
+  protocolSelect.innerHTML = `
+    <option value="chat">${i18n.currentLang === 'zh-CN' ? 'OpenAI Chat（/chat/completions）' : 'OpenAI Chat (/chat/completions)'}</option>
+    <option value="responses">${i18n.currentLang === 'zh-CN' ? 'OpenAI Responses / Codex（/responses）' : 'OpenAI Responses / Codex (/responses)'}</option>
+    <option value="anthropic">${i18n.currentLang === 'zh-CN' ? 'Anthropic Messages（/messages）' : 'Anthropic Messages (/messages)'}</option>
+  `;
+
   const baseUrlLabel = document.createElement('div');
   baseUrlLabel.style.cssText = 'font-size:12px;color:#666;margin-bottom:6px;';
   baseUrlLabel.textContent = i18n.t('settings.apiBaseUrl');
@@ -82,7 +93,12 @@ function buildAISettingsSection() {
   function providerLabel(profile) {
     const name = profile.name || profile.provider || '';
     const type = profile.provider === 'anthropic' ? i18n.t('settings.providerAnthropic') : i18n.t('settings.providerOpenAI');
-    return `${name || type} · ${type}`;
+    const protocol = profile.protocol === 'responses'
+      ? (i18n.currentLang === 'zh-CN' ? 'Responses / Codex' : 'Responses / Codex')
+      : profile.protocol === 'anthropic'
+        ? i18n.t('settings.providerAnthropic')
+        : (i18n.currentLang === 'zh-CN' ? 'Chat' : 'Chat');
+    return `${name || type} · ${type} · ${protocol}`;
   }
 
   function parseModels() {
@@ -94,8 +110,14 @@ function buildAISettingsSection() {
   }
 
   function syncPlaceholder() {
-    baseUrlInput.placeholder = providerTypeSelect.value === 'anthropic'
-      ? 'https://api.anthropic.com/v1/messages'
+    const isAnthropic = providerTypeSelect.value === 'anthropic' || protocolSelect.value === 'anthropic';
+    protocolSelect.disabled = isAnthropic && providerTypeSelect.value === 'anthropic';
+    if (isAnthropic) {
+      baseUrlInput.placeholder = 'https://api.anthropic.com/v1/messages';
+      return;
+    }
+    baseUrlInput.placeholder = protocolSelect.value === 'responses'
+      ? 'https://claude-api.cloud/v1/responses'
       : 'https://api.openai.com/v1/chat/completions';
   }
 
@@ -122,6 +144,7 @@ function buildAISettingsSection() {
     if (!profile || !state.config) return;
     profile.name = nameInput.value.trim() || profile.name;
     profile.provider = providerTypeSelect.value;
+    profile.protocol = providerTypeSelect.value === 'anthropic' ? 'anthropic' : protocolSelect.value;
     profile.baseUrl = baseUrlInput.value.trim();
     profile.models = parseModels();
     profile.currentModel = modelSelect.value || profile.models[0] || '';
@@ -135,6 +158,7 @@ function buildAISettingsSection() {
     state.selectedId = profile.id;
     nameInput.value = profile.name || '';
     providerTypeSelect.value = profile.provider || 'openai';
+    protocolSelect.value = profile.protocol || (profile.provider === 'anthropic' ? 'anthropic' : 'chat');
     baseUrlInput.value = profile.baseUrl || '';
     apiKeyInput.value = state.config?.apiKeys?.[profile.id] || '';
     modelListInput.value = (profile.models || []).join('\n');
@@ -158,6 +182,12 @@ function buildAISettingsSection() {
     loadProfile(currentProfile());
   };
   providerTypeSelect.onchange = () => {
+    if (providerTypeSelect.value === 'anthropic') protocolSelect.value = 'anthropic';
+    syncPlaceholder();
+  };
+  protocolSelect.onchange = () => {
+    if (protocolSelect.value === 'anthropic') providerTypeSelect.value = 'anthropic';
+    if (providerTypeSelect.value === 'anthropic' && protocolSelect.value !== 'anthropic') protocolSelect.value = 'anthropic';
     syncPlaceholder();
   };
   modelListInput.onchange = () => {
@@ -210,6 +240,8 @@ function buildAISettingsSection() {
     nameInput,
     providerTypeLabel,
     providerTypeSelect,
+    protocolLabel,
+    protocolSelect,
     baseUrlLabel,
     baseUrlInput,
     apiKeyLabel,
