@@ -159,6 +159,8 @@ class CanvasEdge {
       text.setAttribute('fill', this.color);
       text.setAttribute('font-weight', 'bold');
       text.setAttribute('pointer-events', 'none');
+      text.style.userSelect = 'none';
+      text.style.webkitUserSelect = 'none';
       const textWidth = Math.max(28, displayText.length * 8 + 12);
       const textBg = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
       textBg.setAttribute('x', labelX - textWidth / 2);
@@ -184,6 +186,7 @@ class CanvasEdge {
 
     // 事件监听
     hitArea.addEventListener('click', (e) => {
+      if (window.canvas?.isClickSuppressed?.()) return;
       e.stopPropagation();
       window.canvas?.selectEdge(this.id);
     });

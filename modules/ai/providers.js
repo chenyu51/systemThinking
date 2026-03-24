@@ -7,7 +7,7 @@ function buildAISettingsSection() {
   header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px;';
   const title = document.createElement('div');
   title.style.cssText = 'font-size:12px;color:#666;font-weight:600;';
-  title.textContent = i18n.currentLang === 'zh-CN' ? '模型提供商' : 'Model Providers';
+  title.textContent = i18n.t('settings.modelProviders');
   const buttonRow = document.createElement('div');
   buttonRow.style.cssText = 'display:flex;gap:6px;';
   const addButton = document.createElement('button');
@@ -23,14 +23,14 @@ function buildAISettingsSection() {
 
   const providerListLabel = document.createElement('div');
   providerListLabel.style.cssText = 'font-size:12px;color:#666;margin-bottom:6px;';
-  providerListLabel.textContent = i18n.currentLang === 'zh-CN' ? '当前提供商' : 'Current Provider';
+  providerListLabel.textContent = i18n.t('settings.currentProvider');
 
   const providerSelect = document.createElement('select');
   providerSelect.style.cssText = 'width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;font-size:12px;margin-bottom:10px;';
 
   const nameLabel = document.createElement('div');
   nameLabel.style.cssText = 'font-size:12px;color:#666;margin-bottom:6px;';
-  nameLabel.textContent = i18n.currentLang === 'zh-CN' ? '提供商名称' : 'Provider Name';
+  nameLabel.textContent = i18n.t('settings.providerName');
   const nameInput = document.createElement('input');
   nameInput.type = 'text';
   nameInput.style.cssText = 'width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;font-size:12px;margin-bottom:10px;';
@@ -47,13 +47,13 @@ function buildAISettingsSection() {
 
   const protocolLabel = document.createElement('div');
   protocolLabel.style.cssText = 'font-size:12px;color:#666;margin-bottom:6px;';
-  protocolLabel.textContent = i18n.currentLang === 'zh-CN' ? '请求方式' : 'Request Mode';
+  protocolLabel.textContent = i18n.t('settings.requestMode');
   const protocolSelect = document.createElement('select');
   protocolSelect.style.cssText = 'width:100%;padding:8px;border:1px solid #ddd;border-radius:4px;font-size:12px;margin-bottom:10px;';
   protocolSelect.innerHTML = `
-    <option value="chat">${i18n.currentLang === 'zh-CN' ? 'OpenAI Chat（/chat/completions）' : 'OpenAI Chat (/chat/completions)'}</option>
-    <option value="responses">${i18n.currentLang === 'zh-CN' ? 'OpenAI Responses / Codex（/responses）' : 'OpenAI Responses / Codex (/responses)'}</option>
-    <option value="anthropic">${i18n.currentLang === 'zh-CN' ? 'Anthropic Messages（/messages）' : 'Anthropic Messages (/messages)'}</option>
+    <option value="chat">${i18n.t('settings.protocolOpenAIChat')}</option>
+    <option value="responses">${i18n.t('settings.protocolOpenAIResponses')}</option>
+    <option value="anthropic">${i18n.t('settings.protocolAnthropicMessages')}</option>
   `;
 
   const baseUrlLabel = document.createElement('div');

@@ -86,6 +86,8 @@ class CanvasNode {
     text.setAttribute('font-weight', '700');
     text.setAttribute('fill', '#fff');
     text.setAttribute('pointer-events', 'none');
+    text.style.userSelect = 'none';
+    text.style.webkitUserSelect = 'none';
     text.textContent = style.badgeText;
     badge.append(bg, text);
     return badge;
@@ -174,6 +176,8 @@ class CanvasNode {
     text.setAttribute('font-weight', '500');
     text.setAttribute('pointer-events', 'none');
     text.setAttribute('class', 'node-label');
+    text.style.userSelect = 'none';
+    text.style.webkitUserSelect = 'none';
     this.setNodeText(text, this.label);
 
     // 处理节点类型的特殊标记
@@ -209,6 +213,7 @@ class CanvasNode {
 
     // 添加交互事件监听器
     shapeElement.addEventListener('click', (e) => {
+      if (window.canvas?.isClickSuppressed?.()) return;
       e.stopPropagation();
       window.canvas?.selectNode(this.id);
     });

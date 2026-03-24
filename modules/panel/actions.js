@@ -147,26 +147,21 @@ function redo() {
   canvas.updateStatus(i18n.t('message.redone'));
 }
 
-function relayoutCanvas() {
-  const canvas = getCanvasInstance();
-  if (!canvas) return;
-  canvas.relayoutGraph();
-  canvas.saveHistory();
-  canvas.persistCanvasState();
-  canvas.updateProperties();
-  canvas.updateStatus(i18n.t('message.layoutApplied'));
-}
-
 async function syncAllData() {
   const canvas = getCanvasInstance();
   if (!canvas) return;
-  canvas.persistCanvasState();
-  await store.save();
-  await store.mergeCloudSnapshot();
-  await syncAIConfigToCloud();
-  resetCanvasUIState();
-  syncCanvasFromStore();
-  canvas.updateStatus(i18n.currentLang === 'zh-CN' ? '已合并同步到云端' : 'Merged and synced');
+  try {
+    canvas.persistCanvasState();
+    await store.save();
+    await store.mergeCloudSnapshot();
+    await syncAIConfigToCloud();
+    resetCanvasUIState();
+    syncCanvasFromStore();
+    canvas.updateStatus(i18n.currentLang === 'zh-CN' ? '已合并同步到云端' : 'Merged and synced');
+  } catch (error) {
+    console.error('Sync to cloud failed:', error);
+    canvas.updateStatus(i18n.currentLang === 'zh-CN' ? '同步到云端失败，请检查存储配额或登录状态' : 'Cloud sync failed. Check storage quota or sign-in state.');
+  }
 }
 
 async function pullRemoteData() {
@@ -182,12 +177,17 @@ async function pullRemoteData() {
     canvas.updateStatus(i18n.currentLang === 'zh-CN' ? '云端没有可获取的数据' : 'No remote data available');
     return;
   }
-  await store.pullRemoteSnapshot();
-  await pullAIConfigFromCloud();
-  resetCanvasUIState();
-  syncCanvasFromStore();
-  canvas.saveHistory();
-  canvas.updateStatus(i18n.currentLang === 'zh-CN' ? '已从云端获取数据' : 'Pulled data from cloud');
+  try {
+    await store.pullRemoteSnapshot();
+    await pullAIConfigFromCloud();
+    resetCanvasUIState();
+    syncCanvasFromStore();
+    canvas.saveHistory();
+    canvas.updateStatus(i18n.currentLang === 'zh-CN' ? '已从云端获取数据' : 'Pulled data from cloud');
+  } catch (error) {
+    console.error('Pull from cloud failed:', error);
+    canvas.updateStatus(i18n.currentLang === 'zh-CN' ? '从云端获取失败，请检查存储状态' : 'Pull from cloud failed. Check storage state.');
+  }
 }
 
 function applyPanelVisibility() {

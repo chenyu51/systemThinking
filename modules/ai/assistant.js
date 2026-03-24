@@ -4,6 +4,7 @@ async function requestAIGraph(prompt, logger = () => {}) {
   return requestAIJSON({
     logger,
     requestPrompt: buildAIRequestPrompt(prompt),
+    maxOutputTokens: 4000,
     systemPrompt: '你是严格遵循系统思维规范的建模助手。请返回 JSON，格式为 {"title":"图标题","description":"图的详细描述","patterns":["模式1"],"leveragePoints":["杠杆点1"],"systemConcepts":{"feedbackLoops":["回路1"],"stocks":["存量1"],"flows":["流量1"],"variables":["变量1"],"delays":["延迟1"],"boundaries":["边界1"],"archetypes":["原型1"]},"nodes":[{"id":"n1","label":"节点","type":"variable","color":"#4A90E2"}],"edges":[{"source":"n1","target":"n2","type":"positive","label":"促进"}]}。必须严格遵守这些规范：1. 节点 type 只能是 variable、stock、flow。2. 存量必须通过流量变化，不能直接被普通变量替代。3. 连线只表达因果影响，type 只能是 positive、negative、neutral。4. 如果存在时间滞后，要在 delays 和边关系中体现。5. patterns 必须是系统行为模式，不是普通总结。6. leveragePoints 必须是可干预的高杠杆位置，不是泛泛建议。7. systemConcepts 必须提取反馈回路、存量、流量、变量、延迟、边界、系统原型。8. 优先形成闭环、回路和存量-流量结构，不要只给线性流程图。9. 节点不超过8个，边不超过12条。'
   }, prompt);
 }
@@ -12,6 +13,7 @@ async function requestAIInsights(prompt, logger = () => {}) {
   return requestAIJSON({
     logger,
     requestPrompt: buildAIInsightPrompt(prompt),
+    maxOutputTokens: 3000,
     systemPrompt: '你是系统思维分析助手。请返回 JSON，格式为 {"title":"图标题","description":"图的详细描述","patterns":["模式1"],"leveragePoints":["杠杆点1"],"systemConcepts":{"feedbackLoops":["回路1"],"stocks":["存量1"],"flows":["流量1"],"variables":["变量1"],"delays":["延迟1"],"boundaries":["边界1"],"archetypes":["原型1"]}}。不要返回 nodes 和 edges。description 要具体，patterns 和 leveragePoints 各返回 2-4 条，systemConcepts 尽量完整提取。'
   }, prompt);
 }
@@ -28,6 +30,11 @@ async function requestAIAnswer(prompt, logger = () => {}) {
 
 async function requestAIJSON(options, prompt) {
   const result = await requestAI((providerOptions) => ({ ...providerOptions, ...options }), options.logger);
+  if (result.raw?.status === 'incomplete' && result.raw?.incomplete_details?.reason === 'max_output_tokens') {
+    throw new Error(i18n.currentLang === 'zh-CN'
+      ? 'AI 返回被截断了，请提高输出上限或缩短输入。'
+      : 'The AI response was truncated. Increase the output limit or shorten the input.');
+  }
   const graph = parseAIResponse(result.provider, result.protocol, result.raw);
   options.logger?.(i18n.t('ai.stepParsed', { nodes: Array.isArray(graph.nodes) ? graph.nodes.length : 0, edges: Array.isArray(graph.edges) ? graph.edges.length : 0 }));
   return { graph, raw: result.raw, meta: { prompt, provider: result.provider, protocol: result.protocol, model: result.model } };
@@ -36,11 +43,11 @@ async function requestAIJSON(options, prompt) {
 async function requestAI(builder, logger = () => {}) {
   const { provider = 'openai', protocol = 'chat', baseUrl, apiKey, model } = await getAIConfig();
   if (!baseUrl || !apiKey || !model) throw new Error(i18n.t('ai.missingConfig'));
-  const { requestPrompt, systemPrompt, jsonMode = true } = builder({ provider, protocol, baseUrl, apiKey, model });
+  const { requestPrompt, systemPrompt, jsonMode = true, maxOutputTokens = 1200 } = builder({ provider, protocol, baseUrl, apiKey, model });
   const endpoint = resolveAIEndpoint(baseUrl, protocol);
   logger(i18n.t('ai.stepConfigLoaded', { provider: `${provider}/${protocol}`, model }));
   logger(i18n.t('ai.stepRequestReady', { url: endpoint }));
-  const response = await fetch(endpoint, buildAIRequestOptions(provider, protocol, apiKey, model, requestPrompt, systemPrompt, jsonMode));
+  const response = await fetch(endpoint, buildAIRequestOptions(provider, protocol, apiKey, model, requestPrompt, systemPrompt, jsonMode, maxOutputTokens));
   logger(i18n.t('ai.stepResponseReceived', { status: response.status }));
   if (!response.ok) {
     const text = await response.text();

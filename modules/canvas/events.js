@@ -5,6 +5,7 @@ Object.assign(Canvas.prototype, {
     this.svgElement.addEventListener('wheel', (event) => this.handleCanvasWheel(event), { passive: false });
     this.svgElement.addEventListener('mousedown', (event) => this.handleCanvasMouseDown(event));
     this.svgElement.addEventListener('mousemove', (event) => this.handleCanvasMouseMove(event));
+    document.addEventListener('mousemove', (event) => this.handleDragMove(event));
     document.addEventListener('mouseup', () => this.handlePointerUp());
     document.addEventListener('click', () => this.hideContextMenu());
     document.addEventListener('keydown', (event) => this.handleKeyDown(event));
@@ -36,6 +37,7 @@ Object.assign(Canvas.prototype, {
   },
 
   handleCanvasClick(event) {
+    if (this.isClickSuppressed()) return;
     this.hideContextMenu();
     if (event.target === this.svgElement && this.currentTool === 'node') {
       const { x, y } = this.screenToWorld(event.clientX, event.clientY);
@@ -106,6 +108,7 @@ Object.assign(Canvas.prototype, {
     const canPanCanvas = this.currentTool !== 'node' && !clickedCanvasElement;
     if (!canPanCanvas) return;
     this.isCanvasDragging = true;
+    document.body.style.userSelect = 'none';
     this.canvasDragStartX = event.clientX;
     this.canvasDragStartY = event.clientY;
     this.canvasDragStartOffsetX = this.offsetX;
@@ -141,9 +144,48 @@ Object.assign(Canvas.prototype, {
     this.tempLine.setAttribute('y2', y);
   },
 
+  handleDragMove(event) {
+    if (!this.dragState) return;
+    const rect = this.svgElement.getBoundingClientRect();
+    const viewWidth = this.baseViewWidth / this.zoom;
+    const viewHeight = this.baseViewHeight / this.zoom;
+    const dx = ((event.clientX - this.dragState.startX) / rect.width) * viewWidth;
+    const dy = ((event.clientY - this.dragState.startY) / rect.height) * viewHeight;
+    if (!dx && !dy) return;
+
+    if (this.dragState.type === 'node') {
+      const node = store.getNodes().find((item) => item.id === this.dragState.id);
+      if (!node) return;
+      store.updateNode(this.dragState.id, { x: node.x + dx, y: node.y + dy });
+      this.updateDraggedNode(this.dragState.id);
+    }
+
+    if (this.dragState.type === 'text') {
+      const text = store.getTexts().find((item) => item.id === this.dragState.id);
+      if (!text) return;
+      store.updateText(this.dragState.id, { x: text.x + dx, y: text.y + dy });
+      this.updateDraggedText(this.dragState.id);
+    }
+
+    this.dragState.startX = event.clientX;
+    this.dragState.startY = event.clientY;
+    this.dragState.moved = true;
+  },
+
   handlePointerUp() {
+    if (this.dragState) {
+      const { moved } = this.dragState;
+      this.dragState = null;
+      document.body.style.userSelect = '';
+      if (moved) {
+        this.suppressClickUntil = Date.now() + 120;
+        this.persistCanvasState();
+        this.saveHistory();
+      }
+    }
     if (this.isCanvasDragging) {
       this.isCanvasDragging = false;
+      document.body.style.userSelect = '';
       this.updateCanvasCursor();
       this.persistCanvasState();
     }

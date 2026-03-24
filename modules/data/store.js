@@ -260,10 +260,16 @@ class CanvasStore {
 
   async pullRemoteSnapshot() {
     const remoteSnapshot = await this.getCloudSnapshot('sync');
-    await this.writeCloudSnapshot(remoteSnapshot, 'local');
-    this.data = remoteSnapshot.canvas || this.createDefaultData();
+    const localSnapshot = await this.getCloudSnapshot('local');
+    const merged = {
+      canvas: remoteSnapshot.canvas ? cloneJSON(remoteSnapshot.canvas) : (localSnapshot.canvas ? cloneJSON(localSnapshot.canvas) : this.createDefaultData()),
+      savedCanvases: mergeCollectionById(localSnapshot.savedCanvases, remoteSnapshot.savedCanvases),
+      savedTemplates: mergeCollectionById(localSnapshot.savedTemplates, remoteSnapshot.savedTemplates)
+    };
+    await this.writeCloudSnapshot(merged, 'local');
+    this.data = merged.canvas || this.createDefaultData();
     this.ensureCanvasData();
-    return remoteSnapshot;
+    return merged;
   }
   getStats() {
     return { nodeCount: this.data.canvas.nodes.length, edgeCount: this.data.canvas.edges.length };

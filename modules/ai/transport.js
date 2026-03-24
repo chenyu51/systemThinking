@@ -2,7 +2,7 @@ function resolveAIEndpoint(baseUrl, protocol) {
   return String(baseUrl || '').trim();
 }
 
-function buildAIRequestOptions(provider, protocol, apiKey, model, prompt, systemPrompt, jsonMode = true) {
+function buildAIRequestOptions(provider, protocol, apiKey, model, prompt, systemPrompt, jsonMode = true, maxOutputTokens = 1200) {
   if (protocol === 'anthropic') {
     return {
       method: 'POST',
@@ -13,7 +13,7 @@ function buildAIRequestOptions(provider, protocol, apiKey, model, prompt, system
       },
       body: JSON.stringify({
         model,
-        max_tokens: 1200,
+        max_tokens: maxOutputTokens,
         system: systemPrompt,
         messages: [{ role: 'user', content: prompt }]
       })
@@ -30,7 +30,7 @@ function buildAIRequestOptions(provider, protocol, apiKey, model, prompt, system
         model,
         instructions: systemPrompt,
         input: prompt,
-        max_output_tokens: 1200
+        max_output_tokens: maxOutputTokens
       })
     };
   }
@@ -47,6 +47,7 @@ function buildAIRequestOptions(provider, protocol, apiKey, model, prompt, system
         { role: 'system', content: systemPrompt },
         { role: 'user', content: prompt }
       ]
+      , max_tokens: maxOutputTokens
       , ...(jsonMode ? { response_format: { type: 'json_object' } } : {})
     })
   };

@@ -64,14 +64,13 @@ function showViewMenu() {
 function showEditMenu() {
   openExclusivePopup(() => {
     const menu = buildPopup('edit-menu', 'position:fixed;background:white;border:1px solid #e0e0e0;border-radius:8px;box-shadow:0 4px 16px rgba(0,0,0,.2);z-index:1000;width:200px;overflow:hidden;');
-    [
-      { label: i18n.t('toolbar.undo'), action: undo },
-      { label: i18n.t('toolbar.redo'), action: redo },
-      { label: i18n.t('toolbar.layout'), action: relayoutCanvas }
-    ].forEach((option) => menu.appendChild(buildMenuItem(option.label, () => {
-      menu.remove();
-      option.action();
-    })));
+  [
+    { label: i18n.t('toolbar.undo'), action: undo },
+    { label: i18n.t('toolbar.redo'), action: redo }
+  ].forEach((option) => menu.appendChild(buildMenuItem(option.label, () => {
+    menu.remove();
+    option.action();
+  })));
     document.body.appendChild(menu);
     anchorPopupToTrigger(menu, document.getElementById('btnEdit'));
   });
@@ -110,7 +109,7 @@ function openSettings() {
   openExclusivePopup(() => {
     const settings = buildPopup('settings-menu', 'position:fixed;background:white;border:1px solid #e0e0e0;border-radius:6px;box-shadow:0 4px 16px rgba(0,0,0,.2);z-index:1000;width:240px;max-height:calc(100vh - 120px);overflow-y:auto;overscroll-behavior:contain;padding:12px 0;');
     settings.appendChild(buildTitle(i18n.t('toolbar.settings'), 'padding:8px 16px;font-weight:600;color:#333;font-size:12px;text-transform:uppercase;letter-spacing:.5px;'));
-    settings.appendChild(buildTitle('Language / 语言', 'padding:8px 16px;font-size:12px;color:#666;'));
+  settings.appendChild(buildTitle(i18n.t('menu.language'), 'padding:8px 16px;font-size:12px;color:#666;'));
     i18n.getLanguages().forEach((lang) => settings.appendChild(buildLanguageItem(lang, settings)));
     settings.appendChild(buildTitle(i18n.t('settings.ai'), 'padding:12px 16px 8px;font-size:12px;color:#666;'));
     settings.appendChild(buildAISettingsSection());

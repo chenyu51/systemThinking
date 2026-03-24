@@ -74,7 +74,6 @@ Object.assign(window, {
   openCanvas,
   saveCanvas,
   saveAsTemplate,
-  relayoutCanvas,
   showSavedMenu,
   showFileMenu,
   showViewMenu,

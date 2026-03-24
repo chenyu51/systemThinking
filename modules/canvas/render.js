@@ -1,4 +1,17 @@
 Object.assign(Canvas.prototype, {
+  isClickSuppressed() {
+    return Date.now() < this.suppressClickUntil;
+  },
+
+  scheduleRender() {
+    if (this.renderScheduled) return;
+    this.renderScheduled = true;
+    requestAnimationFrame(() => {
+      this.renderScheduled = false;
+      this.render();
+    });
+  },
+
   render() {
     const defs = this.svgElement.querySelector('defs');
     this.svgElement.innerHTML = '';
@@ -14,26 +27,67 @@ Object.assign(Canvas.prototype, {
   renderEdges() {
     const edges = store.getEdges();
     const nodes = store.getNodes();
+    const edgeMultiplicity = this.getEdgeMultiplicity(edges);
+    edges.forEach((edgeData, index) => {
+      const svgEdge = this.createEdgeElement(edgeData, index, nodes, edgeMultiplicity);
+      if (svgEdge) this.svgElement.appendChild(svgEdge);
+    });
+  },
+
+  getEdgeMultiplicity(edges) {
     const edgeMultiplicity = new Map();
     edges.forEach((edgeData, index) => {
       const key = [edgeData.source, edgeData.target].sort().join('::');
       if (!edgeMultiplicity.has(key)) edgeMultiplicity.set(key, []);
       edgeMultiplicity.get(key).push(index);
     });
+    return edgeMultiplicity;
+  },
+
+  createEdgeElement(edgeData, index, nodes, edgeMultiplicity) {
+    const sourceNode = nodes.find((node) => node.id === edgeData.source);
+    const targetNode = nodes.find((node) => node.id === edgeData.target);
+    if (!sourceNode || !targetNode) return null;
+    const pairKey = [edgeData.source, edgeData.target].sort().join('::');
+    const pairEdges = edgeMultiplicity.get(pairKey) || [];
+    const pairNodeIds = [edgeData.source, edgeData.target].sort();
+    const svgEdge = new CanvasEdge(edgeData).createSVGElement(
+      new CanvasNode(sourceNode),
+      new CanvasNode(targetNode),
+      pairEdges.indexOf(index),
+      pairEdges.length,
+      edgeData.source === pairNodeIds[0] ? 1 : -1
+    );
+    if (this.selectedEdgeId === edgeData.id) svgEdge.querySelector('line, path').setAttribute('stroke-width', '4');
+    return svgEdge;
+  },
+
+  updateDraggedNode(nodeId) {
+    const nodeData = store.getNodes().find((item) => item.id === nodeId);
+    const nodeElement = this.svgElement.querySelector(`.node[data-id="${nodeId}"]`);
+    if (!nodeData || !nodeElement) return;
+    const node = new CanvasNode(nodeData);
+    nodeElement.setAttribute('transform', `translate(${node.x - node.width / 2}, ${node.y - node.height / 2})`);
+    this.updateEdgesForNode(nodeId);
+  },
+
+  updateDraggedText(textId) {
+    const textData = store.getTexts().find((item) => item.id === textId);
+    const textElement = this.svgElement.querySelector(`.canvas-text[data-id="${textId}"]`);
+    if (!textData || !textElement) return;
+    textElement.setAttribute('transform', `translate(${textData.x}, ${textData.y})`);
+  },
+
+  updateEdgesForNode(nodeId) {
+    const edges = store.getEdges();
+    const nodes = store.getNodes();
+    const edgeMultiplicity = this.getEdgeMultiplicity(edges);
     edges.forEach((edgeData, index) => {
-      const sourceNode = nodes.find((node) => node.id === edgeData.source);
-      const targetNode = nodes.find((node) => node.id === edgeData.target);
-      if (!sourceNode || !targetNode) return;
-      const pairKey = [edgeData.source, edgeData.target].sort().join('::');
-      const pairEdges = edgeMultiplicity.get(pairKey) || [];
-      const pairNodeIds = [edgeData.source, edgeData.target].sort();
-      const svgEdge = new CanvasEdge(edgeData).createSVGElement(new CanvasNode(sourceNode), new CanvasNode(targetNode), pairEdges.indexOf(index), pairEdges.length, edgeData.source === pairNodeIds[0] ? 1 : -1);
-      if (this.selectedEdgeId === edgeData.id) svgEdge.querySelector('line, path').setAttribute('stroke-width', '4');
-      svgEdge.addEventListener('click', (event) => {
-        event.stopPropagation();
-        this.selectEdge(edgeData.id);
-      });
-      this.svgElement.appendChild(svgEdge);
+      if (edgeData.source !== nodeId && edgeData.target !== nodeId) return;
+      const currentEdge = this.svgElement.querySelector(`.edge[data-id="${edgeData.id}"]`);
+      const nextEdge = this.createEdgeElement(edgeData, index, nodes, edgeMultiplicity);
+      if (!currentEdge || !nextEdge) return;
+      currentEdge.replaceWith(nextEdge);
     });
   },
 
@@ -87,72 +141,36 @@ Object.assign(Canvas.prototype, {
   },
 
   makeDraggable(element, nodeId) {
-    let isDragging = false;
-    let startX = 0;
-    let startY = 0;
-    let isDraggingSaved = false;
     element.addEventListener('mousedown', (event) => {
       if (this.currentTool !== 'select') return;
+      event.stopPropagation();
+      event.preventDefault();
+      document.body.style.userSelect = 'none';
       this.selectNode(nodeId);
-      isDragging = true;
-      isDraggingSaved = false;
-      startX = event.clientX;
-      startY = event.clientY;
-    });
-    document.addEventListener('mousemove', (event) => {
-      if (!isDragging) return;
-      const node = store.getNodes().find((item) => item.id === nodeId);
-      if (!node) return;
-      node.x += event.clientX - startX;
-      node.y += event.clientY - startY;
-      store.updateNode(nodeId, { x: node.x, y: node.y });
-      this.render();
-      isDraggingSaved = true;
-      startX = event.clientX;
-      startY = event.clientY;
-    });
-    document.addEventListener('mouseup', () => {
-      if (isDragging && isDraggingSaved) this.persistCanvasState();
-      isDragging = false;
-      if (this.selectedNodeId === nodeId) this.saveHistory();
+      this.dragState = {
+        type: 'node',
+        id: nodeId,
+        startX: event.clientX,
+        startY: event.clientY,
+        moved: false
+      };
     });
   },
 
   makeTextDraggable(element, textId) {
-    let isDragging = false;
-    let startX = 0;
-    let startY = 0;
-    let isDraggingSaved = false;
     element.addEventListener('mousedown', (event) => {
       if (this.currentTool !== 'select') return;
+      event.preventDefault();
+      document.body.style.userSelect = 'none';
       this.selectText(textId);
-      isDragging = true;
-      isDraggingSaved = false;
-      startX = event.clientX;
-      startY = event.clientY;
+      this.dragState = {
+        type: 'text',
+        id: textId,
+        startX: event.clientX,
+        startY: event.clientY,
+        moved: false
+      };
       event.stopPropagation();
-    });
-    document.addEventListener('mousemove', (event) => {
-      if (!isDragging) return;
-      const rect = this.svgElement.getBoundingClientRect();
-      const viewWidth = this.baseViewWidth / this.zoom;
-      const viewHeight = this.baseViewHeight / this.zoom;
-      const dx = ((event.clientX - startX) / rect.width) * viewWidth;
-      const dy = ((event.clientY - startY) / rect.height) * viewHeight;
-      const text = store.getTexts().find((item) => item.id === textId);
-      if (!text) return;
-      text.x += dx;
-      text.y += dy;
-      store.updateText(textId, { x: text.x, y: text.y });
-      this.render();
-      isDraggingSaved = true;
-      startX = event.clientX;
-      startY = event.clientY;
-    });
-    document.addEventListener('mouseup', () => {
-      if (isDragging && isDraggingSaved) this.persistCanvasState();
-      isDragging = false;
-      if (this.selectedTextId === textId) this.saveHistory();
     });
   }
 });

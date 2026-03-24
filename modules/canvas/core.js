@@ -22,6 +22,9 @@ class Canvas {
     this.canvasDragStartY = 0;
     this.canvasDragStartOffsetX = 0;
     this.canvasDragStartOffsetY = 0;
+    this.dragState = null;
+    this.renderScheduled = false;
+    this.suppressClickUntil = 0;
     this.init();
   }
 
