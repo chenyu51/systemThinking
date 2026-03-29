@@ -31,7 +31,7 @@ function getCurrentCanvasGraphContext() {
 function buildAIRequestPrompt(prompt) {
   return [
     `用户需求：${prompt}`,
-    '当前画布图如下，请基于它进行补充、合并或重构，并返回合并后的完整图。同时请识别主要模式（patterns）、杠杆点（leveragePoints）和系统思维要素（systemConcepts）：',
+    '当前画布图如下，请基于它进行补充、合并或重构。支持分批增量返回：只返回本次新增或需调整的部分节点与边，不必返回完整图。同时请识别主要模式（patterns）、杠杆点（leveragePoints）和系统思维要素（systemConcepts）：',
     JSON.stringify(getCurrentCanvasGraphContext(), null, 2)
   ].join('\n\n');
 }
@@ -62,19 +62,23 @@ function normalizeAIList(value) {
 }
 
 function mergeAIGraphIntoCanvas(aiResult) {
-  const graph = aiResult?.graph;
-  if (!graph?.nodes?.length) {
+  const graph = aiResult?.graph || {};
+  const hasNodes = Array.isArray(graph.nodes) && graph.nodes.length > 0;
+  const hasEdges = Array.isArray(graph.edges) && graph.edges.length > 0;
+  if (!hasNodes && !hasEdges) {
     throw new Error(i18n.t('ai.empty'));
   }
 
   const labelMap = new Map();
+  const existingIdSet = new Set();
   store.getNodes().forEach((node) => {
     const key = normalizeGraphLabel(node.label);
     if (key && !labelMap.has(key)) labelMap.set(key, node);
+    existingIdSet.add(node.id);
   });
 
   const idMap = {};
-  graph.nodes.forEach((nodeData) => {
+  (graph.nodes || []).forEach((nodeData) => {
     const key = normalizeGraphLabel(nodeData.label);
     const existing = key ? labelMap.get(key) : null;
     if (existing) {
@@ -100,10 +104,18 @@ function mergeAIGraphIntoCanvas(aiResult) {
     if (key) labelMap.set(key, node.toJSON());
   });
 
+  const resolveNodeRef = (value) => {
+    if (!value) return null;
+    if (idMap[value]) return idMap[value];
+    if (existingIdSet.has(value)) return value;
+    const byLabel = labelMap.get(normalizeGraphLabel(value));
+    return byLabel?.id || null;
+  };
+
   const edgeSet = new Set(store.getEdges().map((edge) => [edge.source, edge.target, edge.type, edge.label || '', !!edge.hasDelay].join('|')));
   (graph.edges || []).forEach((edgeData) => {
-    const source = idMap[edgeData.source];
-    const target = idMap[edgeData.target];
+    const source = resolveNodeRef(edgeData.source);
+    const target = resolveNodeRef(edgeData.target);
     if (!source || !target || source === target) return;
     const edgeKey = [source, target, edgeData.type || 'neutral', edgeData.label || '', !!edgeData.hasDelay].join('|');
     if (edgeSet.has(edgeKey)) return;
@@ -117,20 +129,25 @@ function mergeAIGraphIntoCanvas(aiResult) {
     }).toJSON());
   });
 
+  const prevAIInfo = store.data.aiInfo || {};
+  const nextGoals = normalizeAIList(graph.goals);
+  const nextFunctions = normalizeAIList(graph.functions);
+  const nextPatterns = normalizeAIList(graph.patterns);
+  const nextLeveragePoints = normalizeAIList(graph.leveragePoints);
   store.data.aiInfo = {
-    description: graph.description || graph.summary || graph.explanation || aiResult?.meta?.prompt || '',
-    goals: normalizeAIList(graph.goals),
-    functions: normalizeAIList(graph.functions),
-    patterns: normalizeAIList(graph.patterns),
-    leveragePoints: normalizeAIList(graph.leveragePoints),
-    systemConcepts: normalizeSystemConcepts(graph.systemConcepts),
+    ...prevAIInfo,
+    description: graph.description || graph.summary || graph.explanation || prevAIInfo.description || aiResult?.meta?.prompt || '',
+    goals: nextGoals.length ? nextGoals : normalizeAIList(prevAIInfo.goals),
+    functions: nextFunctions.length ? nextFunctions : normalizeAIList(prevAIInfo.functions),
+    patterns: nextPatterns.length ? nextPatterns : normalizeAIList(prevAIInfo.patterns),
+    leveragePoints: nextLeveragePoints.length ? nextLeveragePoints : normalizeAIList(prevAIInfo.leveragePoints),
+    systemConcepts: graph.systemConcepts ? normalizeSystemConcepts(graph.systemConcepts) : normalizeSystemConcepts(prevAIInfo.systemConcepts),
     prompt: aiResult?.meta?.prompt || '',
     provider: aiResult?.meta?.provider || '',
     model: aiResult?.meta?.model || ''
   };
   store.data.name = graph.title || store.data.name || 'AI 生成图';
-  store.data.description = graph.description || graph.summary || graph.explanation || aiResult?.meta?.prompt || '';
-  window.canvas.relayoutGraph();
+  store.data.description = graph.description || graph.summary || graph.explanation || store.data.description || aiResult?.meta?.prompt || '';
   window.canvas.updateProperties();
   window.canvas.saveHistory();
   window.canvas.persistCanvasState();

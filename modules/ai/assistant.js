@@ -4,8 +4,10 @@ async function requestAIGraph(prompt, logger = () => {}) {
   return requestAIJSON({
     logger,
     requestPrompt: buildAIRequestPrompt(prompt),
+    maxNodes: 8,
+    maxEdges: 12,
     maxOutputTokens: 4000,
-    systemPrompt: '你是严格遵循系统思维规范的建模助手。请返回 JSON，格式为 {"title":"图标题","description":"图的详细描述","goals":["系统目标1"],"functions":["系统功能1"],"patterns":["模式1"],"leveragePoints":["杠杆点1"],"systemConcepts":{"feedbackLoops":["回路1"],"stocks":["存量1"],"flows":["流量1"],"variables":["变量1"],"delays":["延迟1"],"boundaries":["边界1"],"archetypes":["原型1"]},"nodes":[{"id":"n1","label":"节点","type":"variable","color":"#4A90E2"}],"edges":[{"source":"n1","target":"n2","type":"positive","label":"促进"}]}。必须严格遵守这些规范：1. 节点 type 只能是 variable、stock、flow。2. 存量必须通过流量变化，不能直接被普通变量替代。3. 连线只表达因果影响，type 只能是 positive、negative、neutral。4. 如果存在时间滞后，要在 delays 和边关系中体现。5. goals 必须概括系统想维持、优化或实现的目标。6. functions 必须概括系统承担的关键功能或作用。7. patterns 必须是系统行为模式，不是普通总结。8. leveragePoints 必须是可干预的高杠杆位置，不是泛泛建议。9. systemConcepts 必须提取反馈回路、存量、流量、变量、延迟、边界、系统原型。10. 优先形成闭环、回路和存量-流量结构，不要只给线性流程图。'
+    systemPrompt: '你是严格遵循系统思维规范的建模助手。请返回 JSON，格式为 {"title":"图标题","description":"图的详细描述","goals":["系统目标1"],"functions":["系统功能1"],"patterns":["模式1"],"leveragePoints":["杠杆点1"],"systemConcepts":{"feedbackLoops":["回路1"],"stocks":["存量1"],"flows":["流量1"],"variables":["变量1"],"delays":["延迟1"],"boundaries":["边界1"],"archetypes":["原型1"]},"nodes":[{"id":"n1","label":"节点","type":"variable","color":"#4A90E2"}],"edges":[{"source":"n1","target":"n2","type":"positive","label":"促进"}]}。必须严格遵守这些规范：1. 节点 type 只能是 variable、stock、flow。2. 存量必须通过流量变化，不能直接被普通变量替代。3. 连线只表达因果影响，type 只能是 positive、negative、neutral。4. 如果存在时间滞后，要在 delays 和边关系中体现。5. goals 必须概括系统想维持、优化或实现的目标。6. functions 必须概括系统承担的关键功能或作用。7. patterns 必须是系统行为模式，不是普通总结。8. leveragePoints 必须是可干预的高杠杆位置，不是泛泛建议。9. systemConcepts 必须提取反馈回路、存量、流量、变量、延迟、边界、系统原型。10. 优先形成闭环、回路和存量-流量结构，不要只给线性流程图。11. 节点不超过8个，边不超过12条。12. 支持分批增量返回：可只返回本次新增或需调整的部分节点与边，不必返回完整图。'
   }, prompt);
 }
 
@@ -35,7 +37,23 @@ async function requestAIJSON(options, prompt) {
       ? 'AI 返回被截断了，请提高输出上限或缩短输入。'
       : 'The AI response was truncated. Increase the output limit or shorten the input.');
   }
-  const graph = parseAIResponse(result.provider, result.protocol, result.raw);
+  let graph = parseAIResponse(result.provider, result.protocol, result.raw);
+  if (Array.isArray(graph?.nodes) && typeof options.maxNodes === 'number' && options.maxNodes > 0) {
+    const limitedNodes = graph.nodes.slice(0, options.maxNodes);
+    if (limitedNodes.length < graph.nodes.length) {
+      const nodeIds = new Set(limitedNodes.map((node) => node?.id));
+      graph = {
+        ...graph,
+        nodes: limitedNodes,
+        edges: Array.isArray(graph.edges)
+          ? graph.edges.filter((edge) => nodeIds.has(edge?.source) && nodeIds.has(edge?.target))
+          : graph.edges
+      };
+    }
+  }
+  if (Array.isArray(graph?.edges) && typeof options.maxEdges === 'number' && options.maxEdges > 0) {
+    graph = { ...graph, edges: graph.edges.slice(0, options.maxEdges) };
+  }
   options.logger?.(i18n.t('ai.stepParsed', { nodes: Array.isArray(graph.nodes) ? graph.nodes.length : 0, edges: Array.isArray(graph.edges) ? graph.edges.length : 0 }));
   return { graph, raw: result.raw, meta: { prompt, provider: result.provider, protocol: result.protocol, model: result.model } };
 }
