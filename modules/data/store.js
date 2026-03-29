@@ -24,6 +24,8 @@ class CanvasStore {
   createDefaultAIInfo() {
     return {
       description: '',
+      goals: [],
+      functions: [],
       patterns: [],
       leveragePoints: [],
       systemConcepts: {
@@ -45,6 +47,8 @@ class CanvasStore {
     this.data.name ||= '未命名画布';
     this.data.description ||= '';
     this.data.aiInfo = { ...this.createDefaultAIInfo(), ...(this.data.aiInfo || {}) };
+    this.data.aiInfo.goals = Array.isArray(this.data.aiInfo.goals) ? this.data.aiInfo.goals : [];
+    this.data.aiInfo.functions = Array.isArray(this.data.aiInfo.functions) ? this.data.aiInfo.functions : [];
     this.data.aiInfo.patterns = Array.isArray(this.data.aiInfo.patterns) ? this.data.aiInfo.patterns : [];
     this.data.aiInfo.leveragePoints = Array.isArray(this.data.aiInfo.leveragePoints) ? this.data.aiInfo.leveragePoints : [];
     this.data.aiInfo.systemConcepts = {

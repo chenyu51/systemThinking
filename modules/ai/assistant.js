@@ -5,7 +5,7 @@ async function requestAIGraph(prompt, logger = () => {}) {
     logger,
     requestPrompt: buildAIRequestPrompt(prompt),
     maxOutputTokens: 4000,
-    systemPrompt: '你是严格遵循系统思维规范的建模助手。请返回 JSON，格式为 {"title":"图标题","description":"图的详细描述","patterns":["模式1"],"leveragePoints":["杠杆点1"],"systemConcepts":{"feedbackLoops":["回路1"],"stocks":["存量1"],"flows":["流量1"],"variables":["变量1"],"delays":["延迟1"],"boundaries":["边界1"],"archetypes":["原型1"]},"nodes":[{"id":"n1","label":"节点","type":"variable","color":"#4A90E2"}],"edges":[{"source":"n1","target":"n2","type":"positive","label":"促进"}]}。必须严格遵守这些规范：1. 节点 type 只能是 variable、stock、flow。2. 存量必须通过流量变化，不能直接被普通变量替代。3. 连线只表达因果影响，type 只能是 positive、negative、neutral。4. 如果存在时间滞后，要在 delays 和边关系中体现。5. patterns 必须是系统行为模式，不是普通总结。6. leveragePoints 必须是可干预的高杠杆位置，不是泛泛建议。7. systemConcepts 必须提取反馈回路、存量、流量、变量、延迟、边界、系统原型。8. 优先形成闭环、回路和存量-流量结构，不要只给线性流程图。9. 节点不超过8个，边不超过12条。'
+    systemPrompt: '你是严格遵循系统思维规范的建模助手。请返回 JSON，格式为 {"title":"图标题","description":"图的详细描述","goals":["系统目标1"],"functions":["系统功能1"],"patterns":["模式1"],"leveragePoints":["杠杆点1"],"systemConcepts":{"feedbackLoops":["回路1"],"stocks":["存量1"],"flows":["流量1"],"variables":["变量1"],"delays":["延迟1"],"boundaries":["边界1"],"archetypes":["原型1"]},"nodes":[{"id":"n1","label":"节点","type":"variable","color":"#4A90E2"}],"edges":[{"source":"n1","target":"n2","type":"positive","label":"促进"}]}。必须严格遵守这些规范：1. 节点 type 只能是 variable、stock、flow。2. 存量必须通过流量变化，不能直接被普通变量替代。3. 连线只表达因果影响，type 只能是 positive、negative、neutral。4. 如果存在时间滞后，要在 delays 和边关系中体现。5. goals 必须概括系统想维持、优化或实现的目标。6. functions 必须概括系统承担的关键功能或作用。7. patterns 必须是系统行为模式，不是普通总结。8. leveragePoints 必须是可干预的高杠杆位置，不是泛泛建议。9. systemConcepts 必须提取反馈回路、存量、流量、变量、延迟、边界、系统原型。10. 优先形成闭环、回路和存量-流量结构，不要只给线性流程图。'
   }, prompt);
 }
 
@@ -14,7 +14,7 @@ async function requestAIInsights(prompt, logger = () => {}) {
     logger,
     requestPrompt: buildAIInsightPrompt(prompt),
     maxOutputTokens: 3000,
-    systemPrompt: '你是系统思维分析助手。请返回 JSON，格式为 {"title":"图标题","description":"图的详细描述","patterns":["模式1"],"leveragePoints":["杠杆点1"],"systemConcepts":{"feedbackLoops":["回路1"],"stocks":["存量1"],"flows":["流量1"],"variables":["变量1"],"delays":["延迟1"],"boundaries":["边界1"],"archetypes":["原型1"]}}。不要返回 nodes 和 edges。description 要具体，patterns 和 leveragePoints 各返回 2-4 条，systemConcepts 尽量完整提取。'
+    systemPrompt: '你是系统思维分析助手。请返回 JSON，格式为 {"title":"图标题","description":"图的详细描述","goals":["系统目标1"],"functions":["系统功能1"],"patterns":["模式1"],"leveragePoints":["杠杆点1"],"systemConcepts":{"feedbackLoops":["回路1"],"stocks":["存量1"],"flows":["流量1"],"variables":["变量1"],"delays":["延迟1"],"boundaries":["边界1"],"archetypes":["原型1"]}}。不要返回 nodes 和 edges。description 要具体，goals 和 functions 各返回 2-4 条，patterns 和 leveragePoints 各返回 2-4 条，systemConcepts 尽量完整提取。'
   }, prompt);
 }
 

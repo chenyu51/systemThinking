@@ -7,6 +7,12 @@ function getCurrentCanvasGraphContext() {
   return {
     title: store.data.name || '',
     description: store.data.description || '',
+    aiInfo: {
+      goals: store.data.aiInfo?.goals || [],
+      functions: store.data.aiInfo?.functions || [],
+      patterns: store.data.aiInfo?.patterns || [],
+      leveragePoints: store.data.aiInfo?.leveragePoints || []
+    },
     nodes: store.getNodes().map((node) => ({
       label: node.label,
       type: node.type,
@@ -49,6 +55,10 @@ function normalizeSystemConcepts(concepts = {}) {
     boundaries: normalizeList(concepts.boundaries),
     archetypes: normalizeList(concepts.archetypes)
   };
+}
+
+function normalizeAIList(value) {
+  return Array.isArray(value) ? value.map((item) => String(item || '').trim()).filter(Boolean) : [];
 }
 
 function mergeAIGraphIntoCanvas(aiResult) {
@@ -109,8 +119,10 @@ function mergeAIGraphIntoCanvas(aiResult) {
 
   store.data.aiInfo = {
     description: graph.description || graph.summary || graph.explanation || aiResult?.meta?.prompt || '',
-    patterns: Array.isArray(graph.patterns) ? graph.patterns : [],
-    leveragePoints: Array.isArray(graph.leveragePoints) ? graph.leveragePoints : [],
+    goals: normalizeAIList(graph.goals),
+    functions: normalizeAIList(graph.functions),
+    patterns: normalizeAIList(graph.patterns),
+    leveragePoints: normalizeAIList(graph.leveragePoints),
     systemConcepts: normalizeSystemConcepts(graph.systemConcepts),
     prompt: aiResult?.meta?.prompt || '',
     provider: aiResult?.meta?.provider || '',
@@ -132,8 +144,10 @@ function applyAIInsightToCanvas(aiResult) {
   store.data.aiInfo = {
     ...(store.data.aiInfo || {}),
     description: graph.description || graph.summary || graph.explanation || store.data.aiInfo?.description || '',
-    patterns: Array.isArray(graph.patterns) ? graph.patterns : (store.data.aiInfo?.patterns || []),
-    leveragePoints: Array.isArray(graph.leveragePoints) ? graph.leveragePoints : (store.data.aiInfo?.leveragePoints || []),
+    goals: normalizeAIList(graph.goals?.length ? graph.goals : store.data.aiInfo?.goals),
+    functions: normalizeAIList(graph.functions?.length ? graph.functions : store.data.aiInfo?.functions),
+    patterns: normalizeAIList(graph.patterns?.length ? graph.patterns : store.data.aiInfo?.patterns),
+    leveragePoints: normalizeAIList(graph.leveragePoints?.length ? graph.leveragePoints : store.data.aiInfo?.leveragePoints),
     systemConcepts: normalizeSystemConcepts(graph.systemConcepts || store.data.aiInfo?.systemConcepts),
     prompt: aiResult?.meta?.prompt || '',
     provider: aiResult?.meta?.provider || '',

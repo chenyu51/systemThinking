@@ -95,11 +95,13 @@ function buildGraphInfoTemplate() {
 
 function buildGraphInfoAI() {
   const aiInfo = store.data.aiInfo || {};
-  if (!aiInfo.description && !aiInfo.patterns?.length && !aiInfo.leveragePoints?.length) {
+  if (!aiInfo.description && !aiInfo.goals?.length && !aiInfo.functions?.length && !aiInfo.patterns?.length && !aiInfo.leveragePoints?.length) {
     return [buildInfoSection(i18n.t('properties.aiGenerated'), buildInfoBody(i18n.currentLang === 'zh-CN' ? '当前图还没有 AI 信息' : 'No AI information available yet'))];
   }
   return [
     buildInfoSection(i18n.t('properties.aiGenerated'), buildInfoBody(aiInfo.description || '-')),
+    buildInfoSection(i18n.t('properties.systemGoals'), buildInfoList(aiInfo.goals)),
+    buildInfoSection(i18n.t('properties.systemFunctions'), buildInfoList(aiInfo.functions)),
     buildInfoSection(i18n.t('properties.aiPatterns'), buildInfoList(aiInfo.patterns)),
     buildInfoSection(i18n.t('properties.aiLeveragePoints'), buildInfoList(aiInfo.leveragePoints))
   ];
