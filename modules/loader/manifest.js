@@ -5,6 +5,8 @@ window.CANVAS_MODULE_MANIFEST = {
   ],
   data: [
     '../modules/data/storage.js',
+    '../modules/data/import-normalizer.js',
+    '../modules/data/store-utils.js',
     '../modules/data/store.js',
     '../modules/data/archetypes.js'
   ],

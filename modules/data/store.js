@@ -70,7 +70,7 @@ class CanvasStore {
     this.data.canvas.edges = Array.isArray(this.data.canvas.edges) ? this.data.canvas.edges : [];
     this.data.canvas.texts = Array.isArray(this.data.canvas.texts) ? this.data.canvas.texts : [];
     this.data.canvas.nodes.forEach((node) => {
-      node.width = getAutoNodeWidth(node.label, node.shape, node.type, node.width);
+      node.width = window.storeDataUtils.getAutoNodeWidth(node.label, node.shape, node.type, node.width);
     });
   }
 
@@ -88,7 +88,7 @@ class CanvasStore {
   }
 
   cloneData(data = this.data) {
-    return JSON.parse(JSON.stringify(data));
+    return window.storeDataUtils.cloneJSON(data);
   }
 
   async getCollection(key) {
@@ -160,7 +160,14 @@ class CanvasStore {
 
   importJSON(jsonStr) {
     try {
-      this.data = JSON.parse(jsonStr);
+      const parsed = JSON.parse(jsonStr);
+      const normalized = window.normalizeImportedData?.(
+        parsed,
+        this.createDefaultData.bind(this),
+        this.createDefaultAIInfo.bind(this)
+      );
+      if (!normalized) return false;
+      this.data = normalized;
       this.ensureCanvasData();
       return true;
     } catch (error) {
@@ -251,9 +258,9 @@ class CanvasStore {
   async mergeCloudSnapshot() {
     const [localSnapshot, remoteSnapshot] = await Promise.all([this.getCloudSnapshot('local'), this.getCloudSnapshot('sync')]);
     const merged = {
-      canvas: pickLatestRecord(localSnapshot.canvas, remoteSnapshot.canvas) || this.createDefaultData(),
-      savedCanvases: mergeCollectionById(localSnapshot.savedCanvases, remoteSnapshot.savedCanvases),
-      savedTemplates: mergeCollectionById(localSnapshot.savedTemplates, remoteSnapshot.savedTemplates)
+      canvas: window.storeDataUtils.pickLatestRecord(localSnapshot.canvas, remoteSnapshot.canvas) || this.createDefaultData(),
+      savedCanvases: window.storeDataUtils.mergeCollectionById(localSnapshot.savedCanvases, remoteSnapshot.savedCanvases),
+      savedTemplates: window.storeDataUtils.mergeCollectionById(localSnapshot.savedTemplates, remoteSnapshot.savedTemplates)
     };
     await this.writeCloudSnapshot(merged, 'sync');
     await this.writeCloudSnapshot(merged, 'local');
@@ -266,9 +273,11 @@ class CanvasStore {
     const remoteSnapshot = await this.getCloudSnapshot('sync');
     const localSnapshot = await this.getCloudSnapshot('local');
     const merged = {
-      canvas: remoteSnapshot.canvas ? cloneJSON(remoteSnapshot.canvas) : (localSnapshot.canvas ? cloneJSON(localSnapshot.canvas) : this.createDefaultData()),
-      savedCanvases: mergeCollectionById(localSnapshot.savedCanvases, remoteSnapshot.savedCanvases),
-      savedTemplates: mergeCollectionById(localSnapshot.savedTemplates, remoteSnapshot.savedTemplates)
+      canvas: remoteSnapshot.canvas
+        ? window.storeDataUtils.cloneJSON(remoteSnapshot.canvas)
+        : (localSnapshot.canvas ? window.storeDataUtils.cloneJSON(localSnapshot.canvas) : this.createDefaultData()),
+      savedCanvases: window.storeDataUtils.mergeCollectionById(localSnapshot.savedCanvases, remoteSnapshot.savedCanvases),
+      savedTemplates: window.storeDataUtils.mergeCollectionById(localSnapshot.savedTemplates, remoteSnapshot.savedTemplates)
     };
     await this.writeCloudSnapshot(merged, 'local');
     this.data = merged.canvas || this.createDefaultData();
@@ -278,43 +287,6 @@ class CanvasStore {
   getStats() {
     return { nodeCount: this.data.canvas.nodes.length, edgeCount: this.data.canvas.edges.length };
   }
-}
-
-function cloneJSON(value) {
-  return JSON.parse(JSON.stringify(value));
-}
-
-function parseTime(value) {
-  return Date.parse(value || '') || 0;
-}
-
-function mergeCollectionById(localItems = [], remoteItems = []) {
-  const map = new Map();
-  [...localItems, ...remoteItems].forEach((item) => {
-    if (!item?.id) return;
-    const existing = map.get(item.id);
-    if (!existing || parseTime(item.updated) >= parseTime(existing.updated)) {
-      map.set(item.id, cloneJSON(item));
-    }
-  });
-  return [...map.values()];
-}
-
-function pickLatestRecord(localRecord, remoteRecord) {
-  if (!localRecord) return remoteRecord ? cloneJSON(remoteRecord) : null;
-  if (!remoteRecord) return cloneJSON(localRecord);
-  return parseTime(remoteRecord.updated) >= parseTime(localRecord.updated)
-    ? cloneJSON(remoteRecord)
-    : cloneJSON(localRecord);
-}
-
-function getAutoNodeWidth(label, shape = 'rectangle', type = 'variable', minWidth = 120) {
-  if (shape !== 'rectangle') return Math.max(minWidth || 120, 120);
-  const text = String(label || '');
-  const charWidth = /[^\x00-\xff]/.test(text) ? 18 : 9;
-  const coreWidth = 64 + Math.ceil(text.length * charWidth);
-  const badgePadding = type === 'variable' ? 0 : 26;
-  return Math.max(minWidth || 120, coreWidth + badgePadding);
 }
 
 const store = new CanvasStore();

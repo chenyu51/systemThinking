@@ -51,7 +51,8 @@ function openCanvas() {
       if (!store.importJSON(loadEvent.target.result)) return alert(i18n.t('dialog.openError'));
       store.save();
       resetCanvasUIState();
-      syncCanvasFromStore();
+      syncCanvasFromStore({ centerGraph: true });
+      canvas.saveHistory();
       canvas.persistCanvasState();
       canvas.updateStatus(i18n.t('message.canvasOpened'));
     };
