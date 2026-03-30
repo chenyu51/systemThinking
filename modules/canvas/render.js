@@ -27,18 +27,15 @@ Object.assign(Canvas.prototype, {
 
   getNodeFocusContext() {
     if (!this.selectedNodeId) return null;
+    const selectedNodeId = this.selectedNodeId;
     const focusNodeIds = new Set([this.selectedNodeId]);
     const focusEdgeIds = new Set();
     const edges = store.getEdges();
 
     edges.forEach((edge) => {
-      if (edge.source !== this.selectedNodeId && edge.target !== this.selectedNodeId) return;
+      if (edge.source !== selectedNodeId && edge.target !== selectedNodeId) return;
       focusNodeIds.add(edge.source);
       focusNodeIds.add(edge.target);
-    });
-
-    edges.forEach((edge) => {
-      if (!focusNodeIds.has(edge.source) || !focusNodeIds.has(edge.target)) return;
       focusEdgeIds.add(edge.id);
     });
 
@@ -125,8 +122,8 @@ Object.assign(Canvas.prototype, {
       this.makeDraggable(svgNode, nodeData.id);
       if (this.currentTool === 'select') {
         svgNode.addEventListener('click', (event) => {
-          if (this.isClickSuppressed()) return;
           event.stopPropagation();
+          if (this.isClickSuppressed()) return;
           this.selectNode(nodeData.id);
         });
       }
@@ -158,8 +155,8 @@ Object.assign(Canvas.prototype, {
       const svgText = new CanvasText(textData).createSVGElement(this.selectedTextId === textData.id);
       this.makeTextDraggable(svgText, textData.id);
       svgText.addEventListener('click', (event) => {
-        if (this.isClickSuppressed()) return;
         event.stopPropagation();
+        if (this.isClickSuppressed()) return;
         this.selectText(textData.id);
       });
       this.svgElement.appendChild(svgText);
@@ -172,7 +169,6 @@ Object.assign(Canvas.prototype, {
       event.stopPropagation();
       event.preventDefault();
       document.body.style.userSelect = 'none';
-      this.selectNode(nodeId);
       this.dragState = {
         type: 'node',
         id: nodeId,
@@ -188,7 +184,6 @@ Object.assign(Canvas.prototype, {
       if (this.currentTool !== 'select') return;
       event.preventDefault();
       document.body.style.userSelect = 'none';
-      this.selectText(textId);
       this.dragState = {
         type: 'text',
         id: textId,
