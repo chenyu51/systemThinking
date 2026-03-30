@@ -16,20 +16,41 @@ Object.assign(Canvas.prototype, {
     const defs = this.svgElement.querySelector('defs');
     this.svgElement.innerHTML = '';
     if (defs) this.svgElement.appendChild(defs);
-    this.renderEdges();
-    this.renderNodes();
+    const focusContext = this.getNodeFocusContext();
+    this.renderEdges(focusContext);
+    this.renderNodes(focusContext);
     this.renderTexts();
     const stats = store.getStats();
     document.getElementById('nodeCount').textContent = i18n.t('status.nodes', { count: stats.nodeCount });
     document.getElementById('edgeCount').textContent = i18n.t('status.edges', { count: stats.edgeCount });
   },
 
-  renderEdges() {
+  getNodeFocusContext() {
+    if (!this.selectedNodeId) return null;
+    const focusNodeIds = new Set([this.selectedNodeId]);
+    const focusEdgeIds = new Set();
+    const edges = store.getEdges();
+
+    edges.forEach((edge) => {
+      if (edge.source !== this.selectedNodeId && edge.target !== this.selectedNodeId) return;
+      focusNodeIds.add(edge.source);
+      focusNodeIds.add(edge.target);
+    });
+
+    edges.forEach((edge) => {
+      if (!focusNodeIds.has(edge.source) || !focusNodeIds.has(edge.target)) return;
+      focusEdgeIds.add(edge.id);
+    });
+
+    return { focusNodeIds, focusEdgeIds };
+  },
+
+  renderEdges(focusContext = null) {
     const edges = store.getEdges();
     const nodes = store.getNodes();
     const edgeMultiplicity = this.getEdgeMultiplicity(edges);
     edges.forEach((edgeData, index) => {
-      const svgEdge = this.createEdgeElement(edgeData, index, nodes, edgeMultiplicity);
+      const svgEdge = this.createEdgeElement(edgeData, index, nodes, edgeMultiplicity, focusContext);
       if (svgEdge) this.svgElement.appendChild(svgEdge);
     });
   },
@@ -44,7 +65,7 @@ Object.assign(Canvas.prototype, {
     return edgeMultiplicity;
   },
 
-  createEdgeElement(edgeData, index, nodes, edgeMultiplicity) {
+  createEdgeElement(edgeData, index, nodes, edgeMultiplicity, focusContext = null) {
     const sourceNode = nodes.find((node) => node.id === edgeData.source);
     const targetNode = nodes.find((node) => node.id === edgeData.target);
     if (!sourceNode || !targetNode) return null;
@@ -59,6 +80,7 @@ Object.assign(Canvas.prototype, {
       edgeData.source === pairNodeIds[0] ? 1 : -1
     );
     if (this.selectedEdgeId === edgeData.id) svgEdge.querySelector('line, path').setAttribute('stroke-width', '4');
+    if (focusContext && !focusContext.focusEdgeIds.has(edgeData.id)) svgEdge.style.opacity = '0.2';
     return svgEdge;
   },
 
@@ -82,22 +104,24 @@ Object.assign(Canvas.prototype, {
     const edges = store.getEdges();
     const nodes = store.getNodes();
     const edgeMultiplicity = this.getEdgeMultiplicity(edges);
+    const focusContext = this.getNodeFocusContext();
     edges.forEach((edgeData, index) => {
       if (edgeData.source !== nodeId && edgeData.target !== nodeId) return;
       const currentEdge = this.svgElement.querySelector(`.edge[data-id="${edgeData.id}"]`);
-      const nextEdge = this.createEdgeElement(edgeData, index, nodes, edgeMultiplicity);
+      const nextEdge = this.createEdgeElement(edgeData, index, nodes, edgeMultiplicity, focusContext);
       if (!currentEdge || !nextEdge) return;
       currentEdge.replaceWith(nextEdge);
     });
   },
 
-  renderNodes() {
+  renderNodes(focusContext = null) {
     store.getNodes().forEach((nodeData) => {
       const svgNode = new CanvasNode(nodeData).createSVGElement({ showPorts: this.currentTool === 'edge' || this.isDrawingEdge });
       if (this.selectedNodeId === nodeData.id) {
         svgNode.querySelector('.node-shape').setAttribute('stroke', '#FFD700');
         svgNode.querySelector('.node-shape').setAttribute('stroke-width', '3');
       }
+      if (focusContext && !focusContext.focusNodeIds.has(nodeData.id)) svgNode.style.opacity = '0.2';
       this.makeDraggable(svgNode, nodeData.id);
       if (this.currentTool === 'select') {
         svgNode.addEventListener('click', (event) => {
