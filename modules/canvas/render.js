@@ -125,6 +125,7 @@ Object.assign(Canvas.prototype, {
       this.makeDraggable(svgNode, nodeData.id);
       if (this.currentTool === 'select') {
         svgNode.addEventListener('click', (event) => {
+          if (this.isClickSuppressed()) return;
           event.stopPropagation();
           this.selectNode(nodeData.id);
         });
@@ -157,6 +158,7 @@ Object.assign(Canvas.prototype, {
       const svgText = new CanvasText(textData).createSVGElement(this.selectedTextId === textData.id);
       this.makeTextDraggable(svgText, textData.id);
       svgText.addEventListener('click', (event) => {
+        if (this.isClickSuppressed()) return;
         event.stopPropagation();
         this.selectText(textData.id);
       });

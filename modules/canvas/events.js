@@ -108,6 +108,7 @@ Object.assign(Canvas.prototype, {
     const canPanCanvas = this.currentTool !== 'node' && !clickedCanvasElement;
     if (!canPanCanvas) return;
     this.isCanvasDragging = true;
+    this.canvasDragMoved = false;
     document.body.style.userSelect = 'none';
     this.canvasDragStartX = event.clientX;
     this.canvasDragStartY = event.clientY;
@@ -122,6 +123,12 @@ Object.assign(Canvas.prototype, {
       const rect = this.svgElement.getBoundingClientRect();
       const viewWidth = this.baseViewWidth / this.zoom;
       const viewHeight = this.baseViewHeight / this.zoom;
+      if (
+        Math.abs(event.clientX - this.canvasDragStartX) > 2
+        || Math.abs(event.clientY - this.canvasDragStartY) > 2
+      ) {
+        this.canvasDragMoved = true;
+      }
       const dx = ((event.clientX - this.canvasDragStartX) / rect.width) * viewWidth;
       const dy = ((event.clientY - this.canvasDragStartY) / rect.height) * viewHeight;
       this.offsetX = this.canvasDragStartOffsetX - dx;
@@ -184,9 +191,12 @@ Object.assign(Canvas.prototype, {
       }
     }
     if (this.isCanvasDragging) {
+      const moved = this.canvasDragMoved;
       this.isCanvasDragging = false;
+      this.canvasDragMoved = false;
       document.body.style.userSelect = '';
       this.updateCanvasCursor();
+      if (moved) this.suppressClickUntil = Date.now() + 120;
       this.persistCanvasState();
     }
     if (this.isDrawingEdge) {
